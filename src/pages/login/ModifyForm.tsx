@@ -61,7 +61,8 @@ const ModifyForm = ({ loginMethod, setFormType }: ModifyFormProps) => {
       );
     } else {
       reset(
-        { ...fields, password: md5(fields.password) },
+        // { ...fields, password: md5(fields.password) },
+        { ...fields, password: fields.password },
         {
           onSuccess() {
             message.success(t("toast.updatePasswordSuccess"));

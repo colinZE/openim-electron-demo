@@ -54,7 +54,8 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
 
   const onFinish = (params: API.Login.LoginParams) => {
     if (loginType === 0) {
-      params.password = md5(params.password ?? "");
+      // params.password = md5(params.password ?? "");
+      params.password = params.password ?? "";
     }
     if (params.phoneNumber) {
       setAreaCode(params.areaCode);

@@ -64,7 +64,10 @@ export default defineConfig(({ command }) => {
           port: +url.port,
         };
       })()
-      : undefined,
+      : {
+          host: '0.0.0.0',
+          port: 5173,
+        },
     clearScreen: false,
     build: {
       sourcemap: false,
