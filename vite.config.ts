@@ -81,6 +81,19 @@ export default defineConfig(({ command }) => {
       },
       rollupOptions: {
         output: {
+          assetFileNames: (assetInfo) => {
+            // 保持 WASM 文件的原始名称
+            if (assetInfo.name && assetInfo.name.endsWith('.wasm')) {
+              return '[name][extname]';
+            }
+            return 'assets/[name]-[hash][extname]';
+          },
+          // manualChunks: {
+          //   // 代码分割优化
+          //   vendor: ['react', 'react-dom'],
+          //   antd: ['antd'],
+          //   openim: ['@openim/electron-client-sdk', '@openim/wasm-client-sdk'],
+          // },
         },
       },
     },

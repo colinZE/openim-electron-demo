@@ -12,7 +12,6 @@
   },
   files: [
     "dist",
-    "!dist/*.wasm",
     "dist-electron",
     "!node_modules/rxjs/**/*",
     "!node_modules/koffi/src/**/*",
@@ -29,6 +28,14 @@
     {
       from: "node_modules/rxjs",
       to: "app.asar.unpacked/node_modules/rxjs",
+    },
+    {
+      from: "dist/*.wasm",
+      to: ".",
+    },
+    {
+      from: "dist/wasm_exec.js",
+      to: ".",
     },
   ],
   mac: {

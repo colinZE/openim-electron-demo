@@ -65,6 +65,20 @@ export function createMainWindow() {
     mainWindow?.webContents.send("main-process-message", new Date().toLocaleString());
   });
 
+  // 处理 WASM 文件的 MIME 类型
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    if (details.url.endsWith('.wasm')) {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Type': ['application/wasm']
+        }
+      });
+    } else {
+      callback({ responseHeaders: details.responseHeaders });
+    }
+  });
+
   // // Make all links open with the browser, not with the application
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("https:") || url.startsWith("http:")) shell.openExternal(url);

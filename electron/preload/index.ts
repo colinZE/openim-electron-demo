@@ -116,3 +116,12 @@ const Api: IElectronAPI = {
 };
 
 contextBridge.exposeInMainWorld("electronAPI", Api);
+
+// 添加 commonEventFunc 的备用实现
+if (!(window as any).commonEventFunc) {
+  console.warn("commonEventFunc not found, providing fallback implementation");
+  (window as any).commonEventFunc = (eventName: string, ...args: any[]) => {
+    console.log("Fallback commonEventFunc called:", eventName, args);
+    // 这里可以添加默认的事件处理逻辑
+  };
+}
