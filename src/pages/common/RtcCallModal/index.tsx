@@ -14,7 +14,7 @@ import {
 import DraggableModalWrap from "@/components/DraggableModalWrap";
 import { CustomType } from "@/constants";
 import { OverlayVisibleHandle, useOverlayVisible } from "@/hooks/useOverlayVisible";
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import { useUserStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
 
@@ -68,23 +68,30 @@ const RtcCallModal: ForwardRefRenderFunction<
 
   const sendCustomSignal = useCallback(
     async (recvID: string, customType: CustomType) => {
-      const data = {
-        customType,
-        data: {
-          ...invitation,
-        },
-      };
-      const { data: message } = await IMSDK.createCustomMessage({
-        data: JSON.stringify(data),
-        extension: "",
-        description: "",
-      });
-      await IMSDK.sendMessage({
-        recvID,
-        message,
-        groupID: "",
-        isOnlineOnly: true,
-      });
+      try {
+        const sdk = await getIMSDK();
+        const data = {
+          customType,
+          data: {
+            ...invitation,
+          },
+        };
+        const { data: message } = await sdk.createCustomMessage({
+          data: JSON.stringify(data),
+          extension: "",
+          description: "",
+        });
+        await sdk.sendMessage({
+          recvID,
+          message,
+          groupID: "",
+          isOnlineOnly: true,
+        });
+        console.log("Custom signal sent successfully:", customType, "to", recvID);
+      } catch (error) {
+        console.error("Failed to send custom signal:", error);
+        throw error;
+      }
     },
     [invitation?.roomID],
   );
@@ -92,12 +99,16 @@ const RtcCallModal: ForwardRefRenderFunction<
   const tryInvite = async () => {
     if (!isRecv) {
       try {
+        console.log("Sending call invitation to:", invitation.inviteeUserIDList[0]);
+        console.log("Invitation data:", invitation);
         await sendCustomSignal(
           invitation.inviteeUserIDList[0],
           CustomType.CallingInvite,
         );
+        console.log("Call invitation sent successfully");
         checkTimeout();
       } catch (error) {
+        console.error("Failed to send call invitation:", error);
         feedbackToast({ msg: t("toast.inviteUserFailed"), error });
         closeOverlay();
       }

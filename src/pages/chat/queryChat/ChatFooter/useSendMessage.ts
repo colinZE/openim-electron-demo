@@ -3,7 +3,7 @@ import { MessageItem, WsResponse } from "@openim/wasm-client-sdk/lib/types/entit
 import { SendMsgParams } from "@openim/wasm-client-sdk/lib/types/params";
 import { useCallback } from "react";
 
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore } from "@/store";
 import { emit } from "@/utils/events";
 
@@ -30,16 +30,44 @@ export function useSendMessage() {
         emit("CHAT_LIST_SCROLL_TO_BOTTOM");
       }
 
+      // 验证必要参数
+      if (!message) {
+        console.error("Message is required");
+        return;
+      }
+
+      const finalRecvID = recvID ?? currentConversation?.userID;
+      const finalGroupID = groupID ?? currentConversation?.groupID;
+
+      // 检查是否有有效的接收者
+      if (!finalRecvID && !finalGroupID) {
+        console.error("No valid recipient: recvID and groupID are both empty", {
+          recvID: finalRecvID,
+          groupID: finalGroupID,
+          currentConversation
+        });
+        updateOneMessage({
+          ...message,
+          status: MessageStatus.Failed,
+        });
+        return;
+      }
+
       const options = {
-        recvID: recvID ?? currentConversation?.userID ?? "",
-        groupID: groupID ?? currentConversation?.groupID ?? "",
+        recvID: finalRecvID || "",
+        groupID: finalGroupID || "",
         message,
+        isOnlineOnly: false,
       };
 
+      console.log("Sending message with options:", options);
+
       try {
-        const { data: successMessage } = await IMSDK.sendMessage(options);
+        const sdk = await getIMSDK();
+        const { data: successMessage } = await sdk.sendMessage(options);
         updateOneMessage(successMessage);
       } catch (error) {
+        console.error("Failed to send message:", error);
         updateOneMessage({
           ...message,
           status: MessageStatus.Failed,

@@ -329,7 +329,8 @@ export const formatMessageByType = (message?: MessageItem): string => {
   }
 };
 
-export const initStore = () => {
+export const initStore = async () => {
+  console.log("Initializing store...");
   calcApplicationBadge();
   const { getSelfInfoByReq } = useUserStore.getState();
   const {
@@ -342,15 +343,29 @@ export const initStore = () => {
   const { getConversationListByReq, getUnReadCountByReq } =
     useConversationStore.getState();
 
-  getUnReadCountByReq();
-  getConversationListByReq();
-  getSelfInfoByReq();
-  getBlackListByReq();
-  getRecvFriendApplicationListByReq();
-  getRecvGroupApplicationListByReq();
-  getSendFriendApplicationListByReq();
-  getSendGroupApplicationListByReq();
-  getUnReadCountByReq();
+  try {
+    console.log("Getting unread count...");
+    await getUnReadCountByReq();
+    
+    console.log("Getting conversation list...");
+    await getConversationListByReq();
+    
+    console.log("Getting self info...");
+    await getSelfInfoByReq();
+    
+    console.log("Getting black list...");
+    await getBlackListByReq();
+    
+    console.log("Getting friend applications...");
+    await getRecvFriendApplicationListByReq();
+    await getRecvGroupApplicationListByReq();
+    await getSendFriendApplicationListByReq();
+    await getSendGroupApplicationListByReq();
+    
+    console.log("Store initialization completed successfully");
+  } catch (error) {
+    console.error("Error during store initialization:", error);
+  }
 };
 
 export const conversationSort = (

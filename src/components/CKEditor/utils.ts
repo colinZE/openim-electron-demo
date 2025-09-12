@@ -27,7 +27,7 @@ const decodeHtmlEntities = (text: string) => {
     textAreaDom = document.createElement("textarea");
   }
   textAreaDom.innerHTML = text;
-  return textAreaDom.value;
+  return textAreaDom.value || "";
 };
 
 export const convertChar = (text: string) => text.replace(/&nbsp;/gi, " ");

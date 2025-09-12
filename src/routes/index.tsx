@@ -26,12 +26,12 @@ const router = createHashRouter([
             },
             children: [
               {
-                index: true,
-                element: <EmptyChat />,
-              },
-              {
                 path: ":conversationID",
                 element: <QueryChat />,
+              },
+              {
+                index: true,
+                element: <EmptyChat />,
               },
             ],
           },
@@ -42,6 +42,20 @@ const router = createHashRouter([
               return { Component: Contact };
             },
             children: contactRoutes,
+          },
+          {
+            path: "/profile",
+            async lazy() {
+              const { default: Profile } = await import("@/pages/profile");
+              return { Component: Profile };
+            },
+          },
+          {
+            path: "/settings",
+            async lazy() {
+              const { default: Settings } = await import("@/pages/settings");
+              return { Component: Settings };
+            },
           },
         ],
       },

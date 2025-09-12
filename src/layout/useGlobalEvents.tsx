@@ -27,9 +27,15 @@ import { useConversationStore, useUserStore } from "@/store";
 import { useContactStore } from "@/store/contact";
 import { feedbackToast } from "@/utils/common";
 import { initStore } from "@/utils/imCommon";
+import { Platform } from "@/utils/platform";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 
-import { IMSDK } from "./MainContentWrap";
+import { IMSDK, getIMSDK } from "./MainContentWrap";
+
+// 需要访问SDK状态，但为了避免循环依赖，我们直接检查SDK实例
+const isSDKReady = () => {
+  return typeof window !== 'undefined' && (window as any).openIMSDK;
+};
 
 export function useGlobalEvent() {
   const navigate = useNavigate();
@@ -92,18 +98,41 @@ export function useGlobalEvent() {
   );
 
   useEffect(() => {
-    loginCheck();
-    setIMListener();
-    setIpcListener();
+    const initApp = async () => {
+      try {
+        // 等待SDK初始化完成
+        const sdk = await getIMSDK();
+        console.log("SDK initialized successfully:", !!sdk);
+        
+        // 确保SDK完全初始化后再设置监听器
+        if (sdk) {
+          loginCheck();
+          setIMListener();
+          setIpcListener();
 
-    window.addEventListener("online", () => {
-      IMSDK.networkStatusChanged();
-    });
-    window.addEventListener("offline", () => {
-      IMSDK.networkStatusChanged();
-    });
+          window.addEventListener("online", () => {
+            if (isSDKReady()) {
+              IMSDK.networkStatusChanged();
+            }
+          });
+          window.addEventListener("offline", () => {
+            if (isSDKReady()) {
+              IMSDK.networkStatusChanged();
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Failed to initialize app:", error);
+      }
+    };
+    
+    initApp();
+    
     return () => {
-      disposeIMListener();
+      // 只有在SDK已初始化时才清理监听器
+      if (isSDKReady()) {
+        disposeIMListener();
+      }
     };
   }, []);
 
@@ -111,10 +140,12 @@ export function useGlobalEvent() {
     const IMToken = (await getIMToken()) as string;
     const IMUserID = (await getIMUserID()) as string;
     if (!IMToken || !IMUserID) {
+      console.log("useGlobalEvents: No auth info, clearing profile");
       clearIMProfile();
-      navigate("/login");
+      // 不在这里跳转，让MainContentWrap处理跳转逻辑
       return;
     }
+    console.log("useGlobalEvents: Auth info found, attempting login");
     tryLogin();
   };
 
@@ -122,26 +153,42 @@ export function useGlobalEvent() {
     updateIsLogining(true);
     const IMToken = (await getIMToken()) as string;
     const IMUserID = (await getIMUserID()) as string;
+    
     try {
+      // 确保SDK已初始化
+      const sdk = await getIMSDK();
       const apiAddr = import.meta.env.VITE_API_URL;
       const wsAddr = import.meta.env.VITE_WS_URL;
-      if (window.electronAPI) {
-        await IMSDK.initSDK({
-          platformID: window.electronAPI?.getPlatform() ?? 5,
-          apiAddr,
-          wsAddr,
-          dataDir: window.electronAPI.getDataPath("sdkResources") || "./",
-          logFilePath: window.electronAPI.getDataPath("logsPath") || "./",
-          logLevel: LogLevel.Debug,
-          isLogStandardOutput: false,
-          systemType: "electron",
-        });
-        await IMSDK.login({
-          userID: IMUserID,
-          token: IMToken,
-        });
+      if (Platform.isElectron()) {
+        try {
+          await IMSDK.initSDK({
+            platformID: (window as any).electronAPI?.getPlatform() ?? 5,
+            apiAddr,
+            wsAddr,
+            dataDir: (window as any).electronAPI.getDataPath("sdkResources") || "./",
+            logFilePath: (window as any).electronAPI.getDataPath("logsPath") || "./",
+            logLevel: LogLevel.Debug,
+            isLogStandardOutput: false,
+            systemType: "electron",
+          });
+          await sdk.login({
+            userID: IMUserID,
+            token: IMToken,
+          });
+        } catch (error) {
+          console.error("Electron SDK init failed, fallback to WASM:", error);
+          // 降级到WASM SDK
+          await sdk.login({
+            userID: IMUserID,
+            token: IMToken,
+            platformID: 5,
+            apiAddr,
+            wsAddr,
+            logLevel: LogLevel.Debug,
+          });
+        }
       } else {
-        await IMSDK.login({
+        await sdk.login({
           userID: IMUserID,
           token: IMToken,
           platformID: 5,
@@ -150,9 +197,22 @@ export function useGlobalEvent() {
           logLevel: LogLevel.Debug,
         });
       }
-      initStore();
+      
+      // 等待一下确保SDK完全初始化
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 在H5环境中，手动设置连接状态为成功
+      if (!Platform.isElectron()) {
+        console.log("H5 environment: Manually setting connection state to success");
+        updateConnectState("success");
+        updateSyncState("success");
+      }
+      
+      console.log("Starting to initialize store...");
+      await initStore();
+      console.log("Store initialization completed");
     } catch (error) {
-      console.error(error);
+      console.error("Login failed:", error);
       if ((error as WsResponse).errCode !== 10102) {
         navigate("/login");
       }
@@ -472,14 +532,16 @@ export function useGlobalEvent() {
   };
 
   const setIpcListener = () => {
-    window.electronAPI?.subscribe("appResume", () => {
-      if (resume.current) {
-        return;
-      }
-      resume.current = true;
-      setTimeout(() => {
-        resume.current = false;
-      }, 5000);
-    });
+    if (Platform.isElectron()) {
+      (window as any).electronAPI?.subscribe("appResume", () => {
+        if (resume.current) {
+          return;
+        }
+        resume.current = true;
+        setTimeout(() => {
+          resume.current = false;
+        }, 5000);
+      });
+    }
   };
 }

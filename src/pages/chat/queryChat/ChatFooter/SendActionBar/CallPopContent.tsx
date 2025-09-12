@@ -26,7 +26,7 @@ const CallPopContent = ({ closeAllPop }: { closeAllPop?: () => void }) => {
   const prepareCall = (idx: number) => {
     const conversation = useConversationStore.getState().currentConversation!;
     const mediaType = idx ? "audio" : "video";
-    emitter.emit("OPEN_RTC_MODAL", {
+    const inviteData = {
       invitation: {
         inviterUserID: useUserStore.getState().selfInfo.userID,
         inviteeUserIDList: [conversation.userID],
@@ -45,7 +45,9 @@ const CallPopContent = ({ closeAllPop }: { closeAllPop?: () => void }) => {
           ex: "",
         },
       },
-    });
+    };
+    console.log("Preparing call with data:", inviteData);
+    emitter.emit("OPEN_RTC_MODAL", inviteData);
     closeAllPop?.();
   };
   return (

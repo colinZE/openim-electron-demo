@@ -2,7 +2,7 @@ import { t } from "i18next";
 import { create } from "zustand";
 
 import { BusinessUserInfo, getBusinessUserInfo } from "@/api/login";
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import router from "@/routes";
 import { feedbackToast } from "@/utils/common";
 import { clearIMProfile, getLocale, setLocale } from "@/utils/storage";
@@ -12,11 +12,11 @@ import { useConversationStore } from "./conversation";
 import { AppSettings, IMConnectState, UserStore } from "./type";
 
 export const useUserStore = create<UserStore>()((set, get) => ({
-  syncState: "success",
+  syncState: "loading",
   progress: 0,
   reinstall: true,
   isLogining: false,
-  connectState: "success",
+  connectState: "loading",
   selfInfo: {} as BusinessUserInfo,
   appSettings: {
     locale: getLocale(),
@@ -37,18 +37,19 @@ export const useUserStore = create<UserStore>()((set, get) => ({
   updateConnectState: (connectState: IMConnectState) => {
     set({ connectState });
   },
-  getSelfInfoByReq: () => {
-    IMSDK.getSelfUserInfo()
-      .then(({ data }) => {
-        set(() => ({ selfInfo: data as unknown as BusinessUserInfo }));
-        getBusinessUserInfo([data.userID]).then(({ data: { users } }) =>
-          set((state) => ({ selfInfo: { ...state.selfInfo, ...users[0] } })),
-        );
-      })
-      .catch((error) => {
-        feedbackToast({ error, msg: t("toast.getSelfInfoFailed") });
-        get().userLogout();
-      });
+  getSelfInfoByReq: async () => {
+    try {
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getSelfUserInfo();
+      set(() => ({ selfInfo: data as unknown as BusinessUserInfo }));
+      getBusinessUserInfo([data.userID]).then(({ data: { users } }) =>
+        set((state) => ({ selfInfo: { ...state.selfInfo, ...users[0] } })),
+      );
+    } catch (error) {
+      console.error("Failed to get self info:", error);
+      feedbackToast({ error, msg: t("toast.getSelfInfoFailed") });
+      get().userLogout();
+    }
   },
   updateSelfInfo: (info: Partial<BusinessUserInfo>) => {
     set((state) => ({ selfInfo: { ...state.selfInfo, ...info } }));
@@ -60,7 +61,14 @@ export const useUserStore = create<UserStore>()((set, get) => ({
     set((state) => ({ appSettings: { ...state.appSettings, ...settings } }));
   },
   userLogout: async (force?: boolean) => {
-    if (!force) await IMSDK.logout();
+    try {
+      if (!force) {
+        const sdk = await getIMSDK();
+        await sdk.logout();
+      }
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
     clearIMProfile();
     set({ selfInfo: {} as BusinessUserInfo, progress: 0 });
     useContactStore.getState().clearContactStore();

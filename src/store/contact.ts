@@ -9,7 +9,7 @@ import {
 import { t } from "i18next";
 import { create } from "zustand";
 
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import { feedbackToast } from "@/utils/common";
 
 import { ContactStore } from "./type";
@@ -32,7 +32,8 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
       // eslint-disable-next-line
       while (true) {
         const count = initialFetch ? 10000 : 1000;
-        const { data } = await IMSDK.getFriendListPage({
+        const sdk = await getIMSDK();
+        const { data } = await sdk.getFriendListPage({
           offset,
           count,
           filterBlack: true,
@@ -70,7 +71,8 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
   },
   getBlackListByReq: async () => {
     try {
-      const { data } = await IMSDK.getBlackList();
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getBlackList();
       set(() => ({ blackList: data }));
     } catch (error) {
       feedbackToast({ error, msg: t("toast.getBlackListFailed") });
@@ -104,7 +106,8 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
       let tmpList = [] as GroupItem[];
       // eslint-disable-next-line
       while (true) {
-        const { data } = await IMSDK.getJoinedGroupListPage({ offset, count: 1000 });
+        const sdk = await getIMSDK();
+        const { data } = await sdk.getJoinedGroupListPage({ offset, count: 1000 });
         tmpList = [...tmpList, ...data];
         offset += 1000;
         if (data.length < 1000) break;
@@ -137,7 +140,8 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
   },
   getRecvFriendApplicationListByReq: async () => {
     try {
-      const { data } = await IMSDK.getFriendApplicationListAsRecipient();
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getFriendApplicationListAsRecipient();
       set(() => ({ recvFriendApplicationList: data }));
     } catch (error) {
       console.error(error);
@@ -168,7 +172,8 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
   },
   getSendFriendApplicationListByReq: async () => {
     try {
-      const { data } = await IMSDK.getFriendApplicationListAsApplicant();
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getFriendApplicationListAsApplicant();
       set(() => ({ sendFriendApplicationList: data }));
     } catch (error) {
       console.error(error);
@@ -186,7 +191,8 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
   },
   getRecvGroupApplicationListByReq: async () => {
     try {
-      const { data } = await IMSDK.getGroupApplicationListAsRecipient();
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getGroupApplicationListAsRecipient();
       set(() => ({ recvGroupApplicationList: data }));
     } catch (error) {
       console.error(error);
@@ -214,7 +220,8 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
   },
   getSendGroupApplicationListByReq: async () => {
     try {
-      const { data } = await IMSDK.getGroupApplicationListAsApplicant();
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getGroupApplicationListAsApplicant();
       set(() => ({ sendGroupApplicationList: data }));
     } catch (error) {
       console.error(error);

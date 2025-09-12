@@ -1,7 +1,7 @@
 import { MessageItem } from "@openim/wasm-client-sdk";
 import { v4 as uuidV4 } from "uuid";
 
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import { base64toFile, canSendImageTypeList } from "@/utils/common";
 
 export interface FileWithPath extends File {
@@ -20,8 +20,10 @@ export function useFileMessage() {
       url: URL.createObjectURL(file),
     };
 
+    const sdk = await getIMSDK();
+    
     if (window.electronAPI) {
-      const imageMessage = (await IMSDK.createImageMessageFromFullPath(file.path!))
+      const imageMessage = (await sdk.createImageMessageFromFullPath(file.path!))
         .data;
       imageMessage.pictureElem!.sourcePicture.url = baseInfo.url;
       return imageMessage;
@@ -34,7 +36,7 @@ export function useFileMessage() {
       file,
     };
 
-    return (await IMSDK.createImageMessageByFile(options)).data;
+    return (await sdk.createImageMessageByFile(options)).data;
   };
 
   const getPicInfo = (file: File): Promise<HTMLImageElement> =>

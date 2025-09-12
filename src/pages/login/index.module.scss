@@ -16,3 +16,66 @@
     }
   }
 }
+
+// H5环境下的登录表单样式
+:global {
+  .h5-login-form {
+    min-height: auto;
+    
+    .ant-form-item {
+      margin-bottom: 20px;
+      
+      .ant-form-item-control-input {
+        min-height: 48px;
+      }
+    }
+    
+    .ant-form-item-label {
+      padding-bottom: 8px;
+      
+      > label {
+        font-size: 16px;
+        font-weight: 500;
+      }
+    }
+    
+    .ant-input,
+    .ant-input-password,
+    .ant-select-selector {
+      height: 48px !important;
+      font-size: 16px !important;
+      border-radius: 8px !important;
+      line-height: 1.5 !important;
+      padding: 12px 16px !important;
+    }
+    
+    .ant-input-password {
+      .ant-input {
+        height: 24px !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+    
+    .ant-btn {
+      height: 48px !important;
+      font-size: 16px !important;
+      border-radius: 8px !important;
+    }
+    
+    .ant-tabs-tab {
+      font-size: 16px !important;
+      padding: 12px 16px !important;
+    }
+    
+    .ant-tabs-content-holder {
+      padding-top: 16px;
+    }
+    
+    // 确保底部操作区域可见
+    .mb-10 {
+      margin-bottom: 24px !important;
+    }
+  }
+}

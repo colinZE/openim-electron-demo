@@ -1,7 +1,7 @@
 import { useLatest, useThrottleFn, useUpdateEffect } from "ahooks";
 import { useEffect } from "react";
 
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore, useUserStore } from "@/store";
 
 export default function useConversationState() {
@@ -26,7 +26,7 @@ export default function useConversationState() {
     checkConversationState();
   }, [currentConversation?.conversationID]);
 
-  const checkConversationState = () => {
+  const checkConversationState = async () => {
     if (
       !latestCurrentConversation.current ||
       latestSyncState.current === "loading"
@@ -34,9 +34,14 @@ export default function useConversationState() {
       return;
 
     if (latestCurrentConversation.current.unreadCount > 0) {
-      IMSDK.markConversationMessageAsRead(
-        latestCurrentConversation.current.conversationID,
-      );
+      try {
+        const sdk = await getIMSDK();
+        await sdk.markConversationMessageAsRead(
+          latestCurrentConversation.current.conversationID,
+        );
+      } catch (error) {
+        console.error("Failed to mark conversation as read:", error);
+      }
     }
   };
 

@@ -7,7 +7,7 @@ import {
 import { t } from "i18next";
 import { create } from "zustand";
 
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import { feedbackToast } from "@/utils/common";
 import { conversationSort, isGroupSession } from "@/utils/imCommon";
 
@@ -25,12 +25,25 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
   getConversationListByReq: async (isOffset?: boolean) => {
     let tmpConversationList = [] as ConversationItem[];
     try {
-      const { data } = await IMSDK.getConversationListSplit({
+      // 确保SDK已初始化
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getConversationListSplit({
         offset: isOffset ? get().conversationList.length : 0,
         count: CONVERSATION_SPLIT_COUNT,
       });
       tmpConversationList = data;
+      
+      // 调试：打印实际的conversationID格式
+      if (data.length > 0) {
+        console.log("Actual conversationID formats from SDK:", data.map(c => ({
+          conversationID: c.conversationID,
+          conversationType: c.conversationType,
+          userID: c.userID,
+          groupID: c.groupID
+        })));
+      }
     } catch (error) {
+      console.error("Failed to get conversation list:", error);
       feedbackToast({ error, msg: t("toast.getConversationFailed") });
       return true;
     }
@@ -93,11 +106,12 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
   },
   getUnReadCountByReq: async () => {
     try {
-      const { data } = await IMSDK.getTotalUnreadMsgCount();
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getTotalUnreadMsgCount();
       set(() => ({ unReadCount: data }));
       return data;
     } catch (error) {
-      console.error(error);
+      console.error("Failed to get unread count:", error);
       return 0;
     }
   },
@@ -107,9 +121,11 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
   getCurrentGroupInfoByReq: async (groupID: string) => {
     let groupInfo: GroupItem;
     try {
-      const { data } = await IMSDK.getSpecifiedGroupsInfo([groupID]);
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getSpecifiedGroupsInfo([groupID]);
       groupInfo = data[0];
     } catch (error) {
+      console.error("Failed to get group info:", error);
       feedbackToast({ error, msg: t("toast.getGroupInfoFailed") });
       return;
     }
@@ -122,12 +138,14 @@ export const useConversationStore = create<ConversationStore>()((set, get) => ({
     let memberInfo: GroupMemberItem;
     const selfID = useUserStore.getState().selfInfo.userID;
     try {
-      const { data } = await IMSDK.getSpecifiedGroupMembersInfo({
+      const sdk = await getIMSDK();
+      const { data } = await sdk.getSpecifiedGroupMembersInfo({
         groupID,
         userIDList: [selfID],
       });
       memberInfo = data[0];
     } catch (error) {
+      console.error("Failed to get group member info:", error);
       set(() => ({ currentMemberInGroup: undefined }));
       feedbackToast({ error, msg: t("toast.getGroupMemberFailed") });
       return;

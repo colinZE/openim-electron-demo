@@ -13,6 +13,7 @@ import {
   setIMProfile,
   setPhoneNumber,
 } from "@/utils/storage";
+import { Platform } from "@/utils/platform";
 
 import { areaCode } from "./areaCode";
 import type { FormType } from "./index";
@@ -68,7 +69,20 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
       onSuccess: (data) => {
         const { chatToken, imToken, userID } = data.data;
         setIMProfile({ chatToken, imToken, userID });
-        navigate("/chat");
+        
+        // 检查hash中是否有重定向信息
+        const hash = window.location.hash;
+        const redirectMatch = hash.match(/#\/chat\/[^/]+/);
+        
+        if (redirectMatch) {
+          const redirectPath = redirectMatch[0].substring(1); // 移除#号
+          console.log("Login success, redirecting to:", redirectPath);
+          // 直接跳转
+          navigate(redirectPath);
+        } else {
+          console.log("Login success, redirecting to chat");
+          navigate("/chat");
+        }
       },
     });
   };
@@ -99,13 +113,18 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
     updateLoginMethod(key as "phone" | "email");
   };
 
+  // H5环境的样式类
+  const isH5 = Platform.isH5();
+  const formClassName = isH5 ? "h5-login-form" : "";
+  const inputSize = isH5 ? "large" : "middle";
+
   return (
     <>
       <div className="flex flex-row items-center justify-between">
-        <div className="text-xl font-medium">{t("placeholder.welcome")}</div>
+        <div className={`font-medium ${isH5 ? 'text-lg' : 'text-xl'}`}>{t("placeholder.welcome")}</div>
       </div>
       <Tabs
-        className={styles["login-method-tab"]}
+        className={`${styles["login-method-tab"]} ${isH5 ? 'mb-6' : ''}`}
         activeKey={loginMethod}
         items={[
           { key: "phone", label: t("placeholder.phoneNumber") },
@@ -119,6 +138,7 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
         onFinish={onFinish}
         autoComplete="off"
         labelCol={{ prefixCls: "custom-form-item" }}
+        className={formClassName}
         initialValues={{
           areaCode: "+86",
           phoneNumber: getPhoneNumber() ?? "",
@@ -129,10 +149,18 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
           <Form.Item label={t("placeholder.phoneNumber")}>
             <Space.Compact className="w-full">
               <Form.Item name="areaCode" noStyle>
-                <Select options={areaCode} className="!w-28" />
+                <Select 
+                  options={areaCode} 
+                  className={isH5 ? "!w-24" : "!w-28"} 
+                  size={inputSize}
+                />
               </Form.Item>
               <Form.Item name="phoneNumber" noStyle>
-                <Input allowClear placeholder={t("toast.inputPhoneNumber")} />
+                <Input 
+                  allowClear 
+                  placeholder={t("toast.inputPhoneNumber")} 
+                  size={inputSize}
+                />
               </Form.Item>
             </Space.Compact>
           </Form.Item>
@@ -142,7 +170,11 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
             name="email"
             rules={[{ type: "email", message: t("toast.inputCorrectEmail") }]}
           >
-            <Input allowClear placeholder={t("toast.inputEmail")} />
+            <Input 
+              allowClear 
+              placeholder={t("toast.inputEmail")} 
+              size={inputSize}
+            />
           </Form.Item>
         )}
 
@@ -153,8 +185,14 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
                 allowClear
                 placeholder={t("toast.inputVerifyCode")}
                 className="w-full"
+                size={inputSize}
               />
-              <Button type="primary" onClick={sendSmsHandle} loading={countdown > 0}>
+              <Button 
+                type="primary" 
+                onClick={sendSmsHandle} 
+                loading={countdown > 0}
+                size={inputSize}
+              >
                 {countdown > 0
                   ? t("date.second", { num: countdown })
                   : t("placeholder.sendVerifyCode")}
@@ -163,19 +201,23 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
           </Form.Item>
         ) : (
           <Form.Item label={t("placeholder.password")} name="password">
-            <Input.Password allowClear placeholder={t("toast.inputPassword")} />
+            <Input.Password 
+              allowClear 
+              placeholder={t("toast.inputPassword")} 
+              size={inputSize}
+            />
           </Form.Item>
         )}
 
-        <div className="mb-10 flex flex-row justify-between">
+        <div className={`${isH5 ? 'mb-6' : 'mb-10'} flex flex-row justify-between`}>
           <span
-            className="cursor-pointer text-sm text-gray-400"
+            className={`cursor-pointer text-gray-400 ${isH5 ? 'text-base' : 'text-sm'}`}
             onClick={() => setFormType(1)}
           >
             {t("placeholder.forgetPassword")}
           </span>
           <span
-            className="cursor-pointer text-sm text-[var(--primary)]"
+            className={`cursor-pointer text-[var(--primary)] ${isH5 ? 'text-base' : 'text-sm'}`}
             onClick={() =>
               setLoginType(
                 loginType === LoginType.Password
@@ -192,18 +234,25 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
           </span>
         </div>
 
-        <Form.Item className="mb-4">
-          <Button type="primary" htmlType="submit" block loading={loginLoading}>
+        <Form.Item className={isH5 ? "mb-6" : "mb-4"}>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            block 
+            loading={loginLoading}
+            size={inputSize}
+            className={isH5 ? "h-12 text-base" : ""}
+          >
             {t("placeholder.login")}
           </Button>
         </Form.Item>
 
-        <div className="flex flex-row items-center justify-center">
-          <span className="text-sm text-gray-400">
+        <div className={`flex flex-row items-center justify-center ${isH5 ? 'mt-4' : ''}`}>
+          <span className={`text-gray-400 ${isH5 ? 'text-base' : 'text-sm'}`}>
             {t("placeholder.registerToast")}
           </span>
           <span
-            className="cursor-pointer text-sm text-blue-500"
+            className={`cursor-pointer text-blue-500 ${isH5 ? 'text-base' : 'text-sm'}`}
             onClick={() => setFormType(2)}
           >
             {t("placeholder.toRegister")}

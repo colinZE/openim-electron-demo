@@ -6,7 +6,7 @@ import { forwardRef, ForwardRefRenderFunction, memo, useState } from "react";
 import CKEditor from "@/components/CKEditor";
 import { getCleanText } from "@/components/CKEditor/utils";
 import i18n from "@/i18n";
-import { IMSDK } from "@/layout/MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 
 import SendActionBar from "./SendActionBar";
 import { useFileMessage } from "./SendActionBar/useFileMessage";
@@ -34,12 +34,26 @@ const ChatFooter: ForwardRefRenderFunction<unknown, unknown> = (_, ref) => {
   };
 
   const enterToSend = async () => {
-    const cleanText = getCleanText(latestHtml.current);
-    const message = (await IMSDK.createTextMessage(cleanText)).data;
-    setHtml("");
-    if (!cleanText) return;
-
-    sendMessage({ message });
+    const htmlContent = latestHtml.current || "";
+    const cleanText = getCleanText(htmlContent);
+    if (!cleanText || cleanText.trim() === "") return;
+    
+    try {
+      const sdk = await getIMSDK();
+      const messageResult = await sdk.createTextMessage(cleanText);
+      console.log("Created text message:", messageResult);
+      
+      if (!messageResult || !messageResult.data) {
+        console.error("Failed to create message: invalid response", messageResult);
+        return;
+      }
+      
+      const message = messageResult.data;
+      setHtml("");
+      sendMessage({ message });
+    } catch (error) {
+      console.error("Failed to create text message:", error);
+    }
   };
 
   return (

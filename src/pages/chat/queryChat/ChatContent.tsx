@@ -42,6 +42,13 @@ const ChatContent = () => {
     getMoreOldMessages();
   };
 
+  console.log("ChatContent render:", { 
+    initLoading: loadState.initLoading, 
+    messageCount: loadState.messageList.length,
+    hasMoreOld: loadState.hasMoreOld,
+    conversationID 
+  });
+
   return (
     <Layout.Content
       className="relative flex h-full overflow-hidden !bg-white"
@@ -50,6 +57,11 @@ const ChatContent = () => {
       {loadState.initLoading ? (
         <div className="flex h-full w-full items-center justify-center bg-white pt-1">
           <Spin spinning />
+          <div className="ml-2">Loading messages...</div>
+        </div>
+      ) : loadState.messageList.length === 0 ? (
+        <div className="flex h-full w-full items-center justify-center bg-white pt-1">
+          <div className="text-gray-500">No messages found</div>
         </div>
       ) : (
         <Virtuoso
