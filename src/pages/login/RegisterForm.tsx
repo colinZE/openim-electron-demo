@@ -163,18 +163,7 @@ const RegisterForm = ({ loginMethod, setFormType }: RegisterFormProps) => {
             const { chatToken, imToken, userID } = res.data;
             setIMProfile({ chatToken, imToken, userID });
             
-            // 检查hash中是否有重定向信息
-            const hash = window.location.hash;
-            const redirectMatch = hash.match(/#\/chat\/[^/]+/);
-            
-            if (redirectMatch) {
-              const redirectPath = redirectMatch[0].substring(1); // 移除#号
-              console.log("Register success, redirecting to:", redirectPath);
-              navigate(redirectPath);
-            } else {
-              console.log("Register success, redirecting to chat");
-              navigate("/chat");
-            }
+            navigate("/chat");
           },
         },
       );

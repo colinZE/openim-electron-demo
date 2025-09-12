@@ -25,20 +25,10 @@ export const MainContentLayout = () => {
     const isRoot = !matches.find((item) => item.pathname !== "/");
     const inConversation = matches.some((item) => item.params.conversationID);
     
-    console.log("MainContentLayout: Navigation check:", {
-      isRoot,
-      inConversation,
-      matches: matches.map(m => ({ pathname: m.pathname, params: m.params }))
-    });
-    
-    // 只有在根路径时才跳转到chat，如果已经在会话中则不要跳转
-    if (isRoot && !inConversation) {
-      console.log("MainContentLayout: Redirecting from root to chat");
+    if (isRoot || inConversation) {
       navigate("chat", {
         replace: true,
       });
-    } else if (inConversation) {
-      console.log("MainContentLayout: Already in conversation, not redirecting");
     }
   });
 

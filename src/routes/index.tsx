@@ -26,12 +26,12 @@ const router = createHashRouter([
             },
             children: [
               {
-                path: ":conversationID",
-                element: <QueryChat />,
-              },
-              {
                 index: true,
                 element: <EmptyChat />,
+              },
+              {
+                path: ":conversationID",
+                element: <QueryChat />,
               },
             ],
           },

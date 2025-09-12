@@ -142,38 +142,11 @@ export const MainContentWrap = () => {
           return;
         }
         
-        // 如果已经登录但当前在登录页面，检查是否有重定向URL
+        // 如果已经登录但当前在登录页面，跳转到聊天页面
         if (location.pathname === "/login") {
-          // 检查hash中是否有重定向信息
-          const hash = window.location.hash;
-          console.log("MainContentWrap: Current hash:", hash);
-          
-          const redirectMatch = hash.match(/#\/chat\/[^/]+/);
-          
-          if (redirectMatch) {
-            const redirectPath = redirectMatch[0].substring(1); // 移除#号
-            console.log("MainContentWrap: Already logged in, redirecting to:", redirectPath);
-            // 直接跳转，不延迟
-            navigate(redirectPath);
-          } else {
-            console.log("MainContentWrap: Already logged in, but no redirect path found");
-            // 不强制跳转到/chat，让用户保持在当前页面
-          }
+          console.log("MainContentWrap: Already logged in, redirecting to chat");
+          navigate("/chat");
         }
-        
-        // 如果用户直接访问聊天链接，确保能正确导航到该会话
-        if (location.pathname.startsWith("/chat/") && location.pathname !== "/chat") {
-          console.log("MainContentWrap: Direct chat link access, ensuring proper navigation to:", location.pathname);
-          // 不需要额外处理，让路由自然处理
-        }
-        
-        // 调试：记录所有路径变化
-        console.log("MainContentWrap: Path change detected:", {
-          pathname: location.pathname,
-          hash: window.location.hash,
-          search: window.location.search,
-          fullURL: window.location.href
-        });
       } catch (error) {
         console.error("MainContentWrap: Error during login check:", error);
         if (location.pathname !== "/login") {

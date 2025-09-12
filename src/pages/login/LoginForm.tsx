@@ -70,19 +70,7 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
         const { chatToken, imToken, userID } = data.data;
         setIMProfile({ chatToken, imToken, userID });
         
-        // 检查hash中是否有重定向信息
-        const hash = window.location.hash;
-        const redirectMatch = hash.match(/#\/chat\/[^/]+/);
-        
-        if (redirectMatch) {
-          const redirectPath = redirectMatch[0].substring(1); // 移除#号
-          console.log("Login success, redirecting to:", redirectPath);
-          // 直接跳转
-          navigate(redirectPath);
-        } else {
-          console.log("Login success, redirecting to chat");
-          navigate("/chat");
-        }
+        navigate("/chat");
       },
     });
   };
