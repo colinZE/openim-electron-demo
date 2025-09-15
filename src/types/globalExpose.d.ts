@@ -22,6 +22,20 @@ declare global {
     userClick: (userID?: string, groupID?: string) => void;
     editRevoke: (clientMsgID: string) => void;
     screenshotPreview: (results: string) => void;
+    
+    // WebView消息处理接口
+    webkit?: {
+      messageHandlers?: {
+        loginResult?: {
+          postMessage: (message: any) => void;
+        };
+      };
+    };
+    
+    // Android WebView接口
+    Android?: {
+      onLoginResult: (result: string) => void;
+    };
   }
 }
 

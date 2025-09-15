@@ -18,7 +18,17 @@ export const MyFriends = () => {
   const alphabetRef = useRef<{ updateCurrentLetter: (letter: string) => void }>(null);
 
   const { data: sectionData, cancel } = useRequest(
-    () => formatContactsByWorker(friendList),
+    async () => {
+      if (friendList.length === 0) {
+        return {
+          indexList: [],
+          dataList: [],
+          totalList: [],
+          groupCounts: [],
+        };
+      }
+      return await formatContactsByWorker(friendList);
+    },
     {
       refreshDeps: [friendList],
     },
@@ -70,44 +80,56 @@ export const MyFriends = () => {
     }
   };
 
+
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-white">
       <div className="m-5.5 text-base font-extrabold">{t("placeholder.myFriend")}</div>
+      
       {!sectionData ? (
-        <Spin />
-      ) : !sectionData.groupCounts.length ? (
+        <div className="flex h-full items-center justify-center">
+          <Spin />
+        </div>
+      ) : !sectionData.groupCounts?.length ? (
         <Empty className="mt-[30%]" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <div className="ml-4 mt-4 flex-1 overflow-auto pr-4">
+        <div className="ml-4 mt-4 flex-1 flex flex-col pr-4">
           <AlphabetIndex
             ref={alphabetRef}
             indexList={sectionData.indexList}
             scrollToLetter={scrollToLetter}
           />
 
-          <GroupedVirtuoso
-            ref={virtuoso}
-            groupCounts={sectionData.groupCounts}
-            groupContent={(index) => (
-              <div>
-                <div className="bg-white px-3.5 pb-1 text-sm text-[#8E9AB0FF]">
-                  {sectionData.indexList[index]}
-                </div>
-                <div className="mx-3.5 mb-3 h-px w-full bg-[#E8EAEFFF] bg-white" />
-              </div>
-            )}
-            itemContent={(index) => {
-              return (
-                <FriendListItem
-                  key={sectionData.totalList[index].userID}
-                  friend={sectionData.totalList[index]}
-                  showUserCard={showUserCard}
-                />
-              );
-            }}
-            rangeChanged={({ startIndex }) => determineCurrentGroup(startIndex)}
-            className="no-scrollbar h-full overflow-x-hidden"
-          />
+          <div className="flex-1 overflow-auto">
+            <div className="pr-4">
+              {sectionData.indexList.map((letter: string, groupIndex: number) => {
+                const startIndex = sectionData.groupCounts.slice(0, groupIndex).reduce((sum, count) => sum + count, 0);
+                const endIndex = startIndex + sectionData.groupCounts[groupIndex];
+                const groupFriends = sectionData.totalList.slice(startIndex, endIndex);
+                
+                return (
+                  <div key={groupIndex} className="mb-5">
+                    {/* 分组标题 */}
+                    <div>
+                      <div className="bg-white px-3.5 pb-1 text-sm text-[#8E9AB0FF]">
+                        {letter}
+                      </div>
+                      <div className="mx-3.5 mb-3 h-px w-full bg-[#E8EAEFFF] bg-white" />
+                    </div>
+                    
+                    {/* 分组内的好友 */}
+                    {groupFriends.map((friend) => (
+                      <FriendListItem
+                        key={friend.userID}
+                        friend={friend}
+                        showUserCard={showUserCard}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>

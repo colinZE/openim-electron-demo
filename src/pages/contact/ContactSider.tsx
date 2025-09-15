@@ -25,7 +25,7 @@ const Links = [
   {
     label: t("placeholder.myFriend"),
     icon: my_friends,
-    path: "/contact",
+    path: "/contact/myFriends",
   },
   {
     label: t("placeholder.myGroup"),
@@ -54,12 +54,15 @@ const ContactSider = () => {
   useEffect(() => {
     if (location.hash.includes("/contact/newFriends")) {
       setSelectIndex(0);
-    }
-    if (location.hash.includes("/contact/groupNotifications")) {
+    } else if (location.hash.includes("/contact/groupNotifications")) {
       setSelectIndex(1);
-    }
-    if (location.hash.includes("/contact/myGroups")) {
+    } else if (location.hash.includes("/contact/myFriends")) {
+      setSelectIndex(2);
+    } else if (location.hash.includes("/contact/myGroups")) {
       setSelectIndex(3);
+    } else if (location.hash === "#/contact") {
+      // 如果访问 /contact，默认选中 myFriends
+      setSelectIndex(2);
     }
   }, []);
 
@@ -74,7 +77,7 @@ const ContactSider = () => {
   };
 
   return (
-    <FlexibleSider needHidden={true}>
+    <FlexibleSider needHidden={false}>
       <div className="h-full bg-white">
         <div className="pb-3 pl-5.5 pt-5.5 text-base font-extrabold">
           {t("placeholder.contact")}

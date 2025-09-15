@@ -113,7 +113,6 @@ export const useContactStore = create<ContactStore>()((set, get) => ({
         if (data.length < 1000) break;
       }
 
-      // const { data } = await IMSDK.getJoinedGroupList();
       set(() => ({ groupList: tmpList }));
     } catch (error) {
       feedbackToast({ error, msg: t("toast.getGroupListFailed") });

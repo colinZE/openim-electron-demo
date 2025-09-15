@@ -334,6 +334,8 @@ export const initStore = async () => {
   calcApplicationBadge();
   const { getSelfInfoByReq } = useUserStore.getState();
   const {
+    getFriendListByReq,
+    getGroupListByReq,
     getBlackListByReq,
     getRecvFriendApplicationListByReq,
     getRecvGroupApplicationListByReq,
@@ -352,6 +354,12 @@ export const initStore = async () => {
     
     console.log("Getting self info...");
     await getSelfInfoByReq();
+    
+    console.log("Getting friend list...");
+    await getFriendListByReq();
+    
+    console.log("Getting group list...");
+    await getGroupListByReq();
     
     console.log("Getting black list...");
     await getBlackListByReq();

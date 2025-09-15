@@ -36,7 +36,7 @@ const router = createHashRouter([
             ],
           },
           {
-            path: "contact",
+            path: "/contact",
             async lazy() {
               const { Contact } = await import("@/pages/contact");
               return { Component: Contact };

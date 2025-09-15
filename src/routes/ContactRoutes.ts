@@ -1,5 +1,12 @@
 const contactRoutes = [
   {
+    index: true,
+    async lazy() {
+      const { MyFriends } = await import("@/pages/contact/myFriends");
+      return { Component: MyFriends };
+    },
+  },
+  {
     path: "groupNotifications",
     async lazy() {
       const { GroupNotifications } = await import("@/pages/contact/groupNotifications");
@@ -7,7 +14,7 @@ const contactRoutes = [
     },
   },
   {
-    index: true,
+    path: "myFriends",
     async lazy() {
       const { MyFriends } = await import("@/pages/contact/myFriends");
       return { Component: MyFriends };

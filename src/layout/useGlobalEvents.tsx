@@ -188,6 +188,8 @@ export function useGlobalEvent() {
           });
         }
       } else {
+        // H5环境：直接登录（恢复原来的方式）
+        console.log("H5环境：开始登录...");
         await sdk.login({
           userID: IMUserID,
           token: IMToken,
@@ -196,6 +198,7 @@ export function useGlobalEvent() {
           wsAddr,
           logLevel: LogLevel.Debug,
         });
+        console.log("H5环境：登录完成");
       }
       
       // 等待一下确保SDK完全初始化
@@ -410,7 +413,7 @@ export function useGlobalEvent() {
   const blackDeletedHandler = ({ data }: WSEvent<BlackUserItem>) => {
     IMSDK.getSpecifiedFriendsInfo({
       friendUserIDList: [data.userID],
-    }).then(({ data }) => {
+    }).then(({ data }: { data: FriendUserItem[] }) => {
       if (data.length) {
         pushNewFriend(data[0]);
       }

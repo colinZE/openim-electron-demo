@@ -1,8 +1,8 @@
-import { Button, Form, Input, QRCode, Select, Space, Tabs } from "antd";
+import { Button, Form, Input, QRCode, Select, Space, Tabs, message, App } from "antd";
 import { t } from "i18next";
 import md5 from "md5";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { useLogin, useSendSms } from "@/api/login";
 import {
@@ -33,12 +33,16 @@ type LoginFormProps = {
 
 const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm();
   const [loginType, setLoginType] = useState<LoginType>(LoginType.Password);
   const { mutate: login, isLoading: loginLoading } = useLogin();
   const { mutate: semdSms } = useSendSms();
+  const { message: messageApi } = App.useApp();
 
   const [countdown, setCountdown] = useState(0);
+  const [isImplicitLogin, setIsImplicitLogin] = useState(false);
+  const [isImplicitLoading, setIsImplicitLoading] = useState(false);
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => {
@@ -52,6 +56,239 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  // 检测APP隐式登录请求
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const isImplicit = params.get('implicit') === 'true';
+    
+    console.log('登录页面加载，当前URL:', window.location.href);
+    console.log('登录页面加载，location.search:', location.search);
+    console.log('登录页面加载，所有URL参数:', Object.fromEntries(params.entries()));
+    
+    if (isImplicit) {
+      console.log('检测到APP隐式登录请求');
+      setIsImplicitLogin(true);
+      
+      // 方案1: 从URL参数获取凭据（推荐用于测试环境）
+      const email = params.get('email');
+      const password = params.get('password');
+      const areaCode = params.get('areaCode') || '+86';
+      const redirectPath = params.get('redirect');
+      
+      if (email && password) {
+        console.log('使用URL参数方式登录（测试环境）');
+        console.log('重定向路径:', redirectPath);
+        
+        // 自动填充表单
+        form.setFieldsValue({ 
+          email, 
+          password, 
+          areaCode,
+          phoneNumber: email.includes('@') ? '' : email
+        });
+        
+        // 根据邮箱或手机号设置登录方式
+        if (email.includes('@')) {
+          updateLoginMethod('email');
+        } else {
+          updateLoginMethod('phone');
+        }
+        
+        // 自动执行登录流程（H5页面会处理SDK初始化）
+        handleImplicitLogin({ email, password, areaCode, redirectPath: redirectPath || undefined });
+      } else {
+        // 等待APP通过POST消息传递凭据
+        console.log('等待APP通过POST消息传递登录凭据');
+      }
+    }
+    
+    // 监听来自APP的POST消息
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'APP_IMPLICIT_LOGIN') {
+        console.log('收到APP隐式登录消息');
+        const { credentials } = event.data;
+        
+        // 自动填充表单
+        form.setFieldsValue({ 
+          email: credentials.email, 
+          password: credentials.password, 
+          areaCode: credentials.areaCode,
+          phoneNumber: credentials.email.includes('@') ? '' : credentials.email
+        });
+        
+        // 根据邮箱或手机号设置登录方式
+        if (credentials.email.includes('@')) {
+          updateLoginMethod('email');
+        } else {
+          updateLoginMethod('phone');
+        }
+        
+        // 自动执行登录流程
+        handleImplicitLogin(credentials);
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [location, form, updateLoginMethod]);
+
+  // 处理APP隐式登录
+  const handleImplicitLogin = async (credentials: {
+    email: string;
+    password: string;
+    areaCode: string;
+    redirectPath?: string;
+  }) => {
+    try {
+      console.log('开始隐式登录流程:', credentials);
+      setIsImplicitLoading(true);
+      
+      // 显示隐式登录状态
+      messageApi.loading('正在自动登录中...', 0);
+      
+      // 自动发送验证码
+      console.log('发送验证码...');
+      await sendVerificationCode(credentials.email, credentials.areaCode);
+      console.log('验证码发送成功');
+      
+      // 自动获取验证码（测试环境可能使用固定值）
+      console.log('获取验证码...');
+      const verifyCode = await getVerificationCode(credentials.email);
+      console.log('获取到验证码:', verifyCode);
+      
+      // 执行登录
+      console.log('开始执行登录...');
+      login({
+        email: credentials.email,
+        password: credentials.password,
+        verifyCode: verifyCode,
+        areaCode: credentials.areaCode,
+      }, {
+        onSuccess: (data) => {
+          console.log('登录成功:', data);
+          messageApi.destroy(); // 清除加载提示
+          messageApi.success('自动登录成功');
+          
+          const { chatToken, imToken, userID } = data.data;
+          setIMProfile({ chatToken, imToken, userID });
+          
+          // 通知APP登录成功
+          notifyAppLoginSuccess({ chatToken, imToken, userID });
+          
+          // 使用保存的重定向路径
+          console.log('隐式登录成功，保存的重定向路径:', credentials.redirectPath);
+          
+          if (credentials.redirectPath) {
+            console.log('隐式登录成功，跳转到指定页面:', credentials.redirectPath);
+            navigate(credentials.redirectPath);
+          } else {
+            console.log('隐式登录成功，跳转到默认聊天页面');
+            navigate("/chat");
+          }
+        },
+        onError: (error) => {
+          console.error('登录失败:', error);
+          messageApi.destroy(); // 清除加载提示
+          messageApi.error('自动登录失败');
+          
+          // 通知APP登录失败
+          notifyAppLoginFailed(error);
+          
+          // 显示正常登录表单
+          setIsImplicitLogin(false);
+        }
+      });
+    } catch (error) {
+      console.error('隐式登录处理失败:', error);
+      messageApi.destroy();
+      messageApi.error('隐式登录处理失败');
+      setIsImplicitLogin(false);
+    } finally {
+      setIsImplicitLoading(false);
+    }
+  };
+
+  // 发送验证码
+  const sendVerificationCode = async (email: string, areaCode: string) => {
+    const options: any = {
+      usedFor: 3, // 3 = Login
+    };
+
+    if (email.includes('@')) {
+      options.email = email;
+    } else {
+      options.phoneNumber = email;
+      options.areaCode = areaCode;
+    }
+
+    return new Promise((resolve, reject) => {
+      semdSms(options, {
+        onSuccess() {
+          resolve(true);
+        },
+        onError(error) {
+          reject(error);
+        }
+      });
+    });
+  };
+
+  // 获取验证码（测试环境使用固定值）
+  const getVerificationCode = async (email: string): Promise<string> => {
+    console.log('获取验证码 - 环境变量:', {
+      VITE_ENV: import.meta.env.VITE_ENV,
+      MODE: import.meta.env.MODE
+    });
+    
+    // 测试环境可能使用固定验证码
+    if (import.meta.env.VITE_ENV === 'test' || import.meta.env.MODE === 'development') {
+      console.log('使用测试环境固定验证码: 123456');
+      return '123456'; // 测试环境固定验证码
+    }
+    
+    // 生产环境需要用户输入或自动获取
+    // 这里可以根据实际需求实现
+    console.log('使用默认固定验证码: 123456');
+    return '123456'; // 临时返回固定值
+  };
+
+  // 通知APP登录成功
+  const notifyAppLoginSuccess = (data: any) => {
+    if (window.webkit?.messageHandlers?.loginResult) {
+      // iOS WebView
+      window.webkit.messageHandlers.loginResult.postMessage({
+        type: 'LOGIN_SUCCESS',
+        payload: data
+      });
+    } else if (window.Android?.onLoginResult) {
+      // Android WebView
+      window.Android.onLoginResult(JSON.stringify({
+        type: 'LOGIN_SUCCESS',
+        payload: data
+      }));
+    }
+  };
+
+  // 通知APP登录失败
+  const notifyAppLoginFailed = (error: any) => {
+    if (window.webkit?.messageHandlers?.loginResult) {
+      // iOS WebView
+      window.webkit.messageHandlers.loginResult.postMessage({
+        type: 'LOGIN_FAILED',
+        error: error.message || '登录失败'
+      });
+    } else if (window.Android?.onLoginResult) {
+      // Android WebView
+      window.Android.onLoginResult(JSON.stringify({
+        type: 'LOGIN_FAILED',
+        error: error.message || '登录失败'
+      }));
+    }
+  };
 
   const onFinish = (params: API.Login.LoginParams) => {
     if (loginType === 0) {
@@ -70,18 +307,26 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
         const { chatToken, imToken, userID } = data.data;
         setIMProfile({ chatToken, imToken, userID });
         
-        // 检查hash中是否有重定向信息
-        const hash = window.location.hash;
-        const redirectMatch = hash.match(/#\/chat\/[^/]+/);
+        // 检查URL参数中是否有重定向路径
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectPath = urlParams.get('redirect');
         
-        if (redirectMatch) {
-          const redirectPath = redirectMatch[0].substring(1); // 移除#号
+        if (redirectPath) {
           console.log("Login success, redirecting to:", redirectPath);
-          // 直接跳转
           navigate(redirectPath);
         } else {
-          console.log("Login success, redirecting to chat");
-          navigate("/chat");
+          // 检查hash中是否有重定向信息（兼容旧逻辑）
+          const hash = window.location.hash;
+          const redirectMatch = hash.match(/#\/chat\/[^/]+/);
+          
+          if (redirectMatch) {
+            const redirectPath = redirectMatch[0].substring(1); // 移除#号
+            console.log("Login success, redirecting to:", redirectPath);
+            navigate(redirectPath);
+          } else {
+            console.log("Login success, redirecting to chat");
+            navigate("/chat");
+          }
         }
       },
     });
@@ -117,6 +362,20 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
   const isH5 = Platform.isH5();
   const formClassName = isH5 ? "h5-login-form" : "";
   const inputSize = isH5 ? "large" : "middle";
+
+  // 如果是隐式登录，显示加载状态
+  if (isImplicitLogin && isImplicitLoading) {
+    return (
+      <div className="implicit-login-container">
+        <div className="flex flex-col items-center justify-center min-h-[200px] p-6">
+          <div className="text-center">
+            <div className="text-lg font-medium text-blue-600 mb-2">正在自动登录中...</div>
+            <div className="text-sm text-gray-500">请稍候...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -239,11 +498,11 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
             type="primary" 
             htmlType="submit" 
             block 
-            loading={loginLoading}
+            loading={loginLoading || isImplicitLoading}
             size={inputSize}
             className={isH5 ? "h-12 text-base" : ""}
           >
-            {t("placeholder.login")}
+            {isImplicitLogin ? '自动登录中...' : t("placeholder.login")}
           </Button>
         </Form.Item>
 
