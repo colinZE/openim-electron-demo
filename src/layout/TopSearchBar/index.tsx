@@ -76,19 +76,47 @@ const TopSearchBar = () => {
       });
       if (rtcInvite) {
         getBusinessUserInfo([rtcInvite.inviterUserID]).then(({ data: { users } }) => {
-          if (users.length === 0) return;
+          let userInfo;
+          if (users.length === 0) {
+            // 如果无法获取用户信息，使用默认信息
+            userInfo = {
+              nickname: rtcInvite.inviterUserID,
+              faceURL: "",
+              userID: rtcInvite.inviterUserID,
+              ex: "",
+            };
+          } else {
+            userInfo = {
+              nickname: users[0].nickname,
+              faceURL: users[0].faceURL,
+              userID: users[0].userID,
+              ex: "",
+            };
+          }
+          
           setInviteData({
             invitation: rtcInvite,
             participant: {
-              userInfo: {
-                nickname: users[0].nickname,
-                faceURL: users[0].faceURL,
-                userID: users[0].userID,
-                ex: "",
-              },
+              userInfo,
             },
           });
           rtcRef.current?.openOverlay();
+        }).catch((error) => {
+          // 如果API调用失败，也使用默认信息
+          if (rtcInvite) {
+            setInviteData({
+              invitation: rtcInvite,
+              participant: {
+                userInfo: {
+                  nickname: rtcInvite.inviterUserID,
+                  faceURL: "",
+                  userID: rtcInvite.inviterUserID,
+                  ex: "",
+                },
+              },
+            });
+            rtcRef.current?.openOverlay();
+          }
         });
       }
     };

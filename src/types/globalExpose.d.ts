@@ -36,6 +36,16 @@ declare global {
     Android?: {
       onLoginResult: (result: string) => void;
     };
+    
+    // 隐式登录数据
+    implicitLoginData?: {
+      // Token 登录方式
+      token: string;
+      // 来源标识
+      source?: string;
+      // 重定向路径
+      redirect?: string;
+    };
   }
 }
 

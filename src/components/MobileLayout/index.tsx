@@ -87,25 +87,48 @@ const MobileLayout = () => {
         }
       });
       if (rtcInvite) {
-        console.log("Processing call invitation from:", rtcInvite.inviterUserID);
         getBusinessUserInfo([rtcInvite.inviterUserID]).then(({ data: { users } }) => {
+          let userInfo;
           if (users.length === 0) {
-            console.log("No user info found for inviter:", rtcInvite!.inviterUserID);
-            return;
+            // 如果无法获取用户信息，使用默认信息
+            userInfo = {
+              nickname: rtcInvite!.inviterUserID,
+              faceURL: "",
+              userID: rtcInvite!.inviterUserID,
+              ex: "",
+            };
+          } else {
+            userInfo = {
+              nickname: users[0].nickname,
+              faceURL: users[0].faceURL,
+              userID: users[0].userID,
+              ex: "",
+            };
           }
-          console.log("Opening RTC modal for call invitation");
+          
           setInviteData({
             invitation: rtcInvite!,
             participant: {
-              userInfo: {
-                nickname: users[0].nickname,
-                faceURL: users[0].faceURL,
-                userID: users[0].userID,
-                ex: "",
-              },
+              userInfo,
             },
           });
           rtcRef.current?.openOverlay();
+        }).catch((error) => {
+          // 如果API调用失败，也使用默认信息
+          if (rtcInvite) {
+            setInviteData({
+              invitation: rtcInvite,
+              participant: {
+                userInfo: {
+                  nickname: rtcInvite.inviterUserID,
+                  faceURL: "",
+                  userID: rtcInvite.inviterUserID,
+                  ex: "",
+                },
+              },
+            });
+            rtcRef.current?.openOverlay();
+          }
         });
       }
     };

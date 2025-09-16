@@ -4,7 +4,7 @@ import md5 from "md5";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { useLogin, useSendSms } from "@/api/login";
+import { useLogin, useSendSms, useTokenLogin } from "@/api/login";
 import {
   getEmail,
   getPhoneNumber,
@@ -37,6 +37,7 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
   const [form] = Form.useForm();
   const [loginType, setLoginType] = useState<LoginType>(LoginType.Password);
   const { mutate: login, isLoading: loginLoading } = useLogin();
+  const { mutate: tokenLogin } = useTokenLogin();
   const { mutate: semdSms } = useSendSms();
   const { message: messageApi } = App.useApp();
 
@@ -70,36 +71,73 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
       console.log('检测到APP隐式登录请求');
       setIsImplicitLogin(true);
       
-      // 方案1: 从URL参数获取凭据（推荐用于测试环境）
-      const email = params.get('email');
-      const password = params.get('password');
-      const areaCode = params.get('areaCode') || '+86';
+      // 检查是否有 token 参数（新的 token 登录方式）
+      const token = params.get('token');
+      const source = params.get('source');
       const redirectPath = params.get('redirect');
       
-      if (email && password) {
-        console.log('使用URL参数方式登录（测试环境）');
+      if (token) {
+        console.log('使用Token方式隐式登录');
+        console.log('Token:', token);
+        console.log('Source:', source);
         console.log('重定向路径:', redirectPath);
         
-        // 自动填充表单
-        form.setFieldsValue({ 
-          email, 
-          password, 
-          areaCode,
-          phoneNumber: email.includes('@') ? '' : email
+        // 直接使用 token 登录
+        handleTokenImplicitLogin({ 
+          token, 
+          source: source || undefined, 
+          redirectPath: redirectPath || undefined 
+        });
+      } else {
+        console.log('隐式登录需要提供有效的Token');
+        messageApi.error('隐式登录失败：缺少Token参数');
+      }
+    }
+    
+    // 检查是否有POST数据（通过全局变量或sessionStorage传递）
+    let postData = window.implicitLoginData;
+    console.log('检查全局变量 implicitLoginData:', postData);
+    
+    // 如果没有全局变量，尝试从sessionStorage获取
+    if (!postData) {
+      const sessionData = sessionStorage.getItem('implicitLoginData');
+      console.log('检查sessionStorage数据:', sessionData);
+      if (sessionData) {
+        try {
+          postData = JSON.parse(sessionData);
+          console.log('解析后的sessionStorage数据:', postData);
+          sessionStorage.removeItem('implicitLoginData');
+        } catch (error) {
+          console.error('解析sessionStorage中的隐式登录数据失败:', error);
+        }
+      }
+    }
+    
+    if (postData) {
+      console.log('检测到POST数据形式的隐式登录请求');
+      
+      // 只支持 token 方式
+      if (postData.token) {
+        console.log('使用POST Token方式登录');
+        console.log('Token:', postData.token);
+        console.log('Source:', postData.source);
+        console.log('重定向路径:', postData.redirect);
+        
+        // 直接使用 token 登录
+        handleTokenImplicitLogin({ 
+          token: postData.token, 
+          source: postData.source,
+          redirectPath: postData.redirect 
         });
         
-        // 根据邮箱或手机号设置登录方式
-        if (email.includes('@')) {
-          updateLoginMethod('email');
-        } else {
-          updateLoginMethod('phone');
-        }
-        
-        // 自动执行登录流程（H5页面会处理SDK初始化）
-        handleImplicitLogin({ email, password, areaCode, redirectPath: redirectPath || undefined });
+        // 清除数据
+        delete window.implicitLoginData;
       } else {
-        // 等待APP通过POST消息传递凭据
-        console.log('等待APP通过POST消息传递登录凭据');
+        console.log('隐式登录需要提供有效的Token');
+        messageApi.error('隐式登录失败：缺少Token参数');
+        
+        // 清除数据
+        delete window.implicitLoginData;
       }
     }
     
@@ -107,25 +145,24 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'APP_IMPLICIT_LOGIN') {
         console.log('收到APP隐式登录消息');
-        const { credentials } = event.data;
+        const { token, source, redirect } = event.data;
         
-        // 自动填充表单
-        form.setFieldsValue({ 
-          email: credentials.email, 
-          password: credentials.password, 
-          areaCode: credentials.areaCode,
-          phoneNumber: credentials.email.includes('@') ? '' : credentials.email
-        });
-        
-        // 根据邮箱或手机号设置登录方式
-        if (credentials.email.includes('@')) {
-          updateLoginMethod('email');
+        if (token) {
+          console.log('使用消息Token方式登录');
+          console.log('Token:', token);
+          console.log('Source:', source);
+          console.log('重定向路径:', redirect);
+          
+          // 直接使用 token 登录
+          handleTokenImplicitLogin({ 
+            token, 
+            source: source || undefined, 
+            redirectPath: redirect 
+          });
         } else {
-          updateLoginMethod('phone');
+          console.log('隐式登录消息需要提供有效的Token');
+          messageApi.error('隐式登录失败：缺少Token参数');
         }
-        
-        // 自动执行登录流程
-        handleImplicitLogin(credentials);
       }
     };
     
@@ -136,40 +173,42 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
     };
   }, [location, form, updateLoginMethod]);
 
-  // 处理APP隐式登录
-  const handleImplicitLogin = async (credentials: {
-    email: string;
-    password: string;
-    areaCode: string;
+  // 处理Token隐式登录
+  const handleTokenImplicitLogin = async (params: {
+    token: string;
+    source?: string;
     redirectPath?: string;
   }) => {
     try {
-      console.log('开始隐式登录流程:', credentials);
+      console.log('开始Token隐式登录流程:', params);
       setIsImplicitLoading(true);
+      
+      // 清理现有的登录状态
+      console.log('清理现有登录状态...');
+      localStorage.removeItem('IM_TOKEN');
+      localStorage.removeItem('IM_CHAT_TOKEN');
+      localStorage.removeItem('IM_USERID');
+      localStorage.removeItem('IM_LOGIN_METHOD');
+      localStorage.removeItem('IM_EMAIL');
+      localStorage.removeItem('IM_PHONE_NUMBER');
+      localStorage.removeItem('IM_AREA_CODE');
       
       // 显示隐式登录状态
       messageApi.loading('正在自动登录中...', 0);
       
-      // 自动发送验证码
-      console.log('发送验证码...');
-      await sendVerificationCode(credentials.email, credentials.areaCode);
-      console.log('验证码发送成功');
-      
-      // 自动获取验证码（测试环境可能使用固定值）
-      console.log('获取验证码...');
-      const verifyCode = await getVerificationCode(credentials.email);
-      console.log('获取到验证码:', verifyCode);
-      
-      // 执行登录
-      console.log('开始执行登录...');
-      login({
-        email: credentials.email,
-        password: credentials.password,
-        verifyCode: verifyCode,
-        areaCode: credentials.areaCode,
+      // 直接使用 token 登录
+      console.log('使用Token登录...');
+      console.log('发送给后端的数据:', {
+        token: params.token,
+        source: params.source,
+        platform: 5
+      });
+      tokenLogin({
+        token: params.token,
+        source: params.source
       }, {
         onSuccess: (data) => {
-          console.log('登录成功:', data);
+          console.log('Token登录成功:', data);
           messageApi.destroy(); // 清除加载提示
           messageApi.success('自动登录成功');
           
@@ -180,37 +219,31 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
           notifyAppLoginSuccess({ chatToken, imToken, userID });
           
           // 使用保存的重定向路径
-          console.log('隐式登录成功，保存的重定向路径:', credentials.redirectPath);
+          console.log('Token隐式登录成功，重定向路径:', params.redirectPath);
           
-          if (credentials.redirectPath) {
-            console.log('隐式登录成功，跳转到指定页面:', credentials.redirectPath);
-            navigate(credentials.redirectPath);
+          if (params.redirectPath) {
+            console.log('Token隐式登录成功，跳转到指定页面:', params.redirectPath);
+            navigate(params.redirectPath);
           } else {
-            console.log('隐式登录成功，跳转到默认聊天页面');
+            console.log('Token隐式登录成功，跳转到默认聊天页面');
             navigate("/chat");
           }
         },
         onError: (error) => {
-          console.error('登录失败:', error);
+          console.error('Token登录失败:', error);
           messageApi.destroy(); // 清除加载提示
-          messageApi.error('自动登录失败');
-          
-          // 通知APP登录失败
-          notifyAppLoginFailed(error);
-          
-          // 显示正常登录表单
-          setIsImplicitLogin(false);
+          messageApi.error('Token登录失败');
+          setIsImplicitLoading(false);
         }
       });
     } catch (error) {
-      console.error('隐式登录处理失败:', error);
-      messageApi.destroy();
-      messageApi.error('隐式登录处理失败');
-      setIsImplicitLogin(false);
-    } finally {
+      console.error('Token隐式登录流程失败:', error);
+      messageApi.destroy(); // 清除加载提示
+      messageApi.error('Token登录失败');
       setIsImplicitLoading(false);
     }
   };
+
 
   // 发送验证码
   const sendVerificationCode = async (email: string, areaCode: string) => {

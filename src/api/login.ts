@@ -146,6 +146,29 @@ export const useLogin = () => {
   );
 };
 
+// token login (for implicit login)
+export const useTokenLogin = () => {
+  return useMutation(
+    (params: { token: string; source?: string }) =>
+      request.post<{ chatToken: string; imToken: string; userID: string }>(
+        "/account/rc/login",
+        {
+          token: params.token,
+          source: params.source,
+          platform,
+        },
+        {
+          headers: {
+            operationID: uuidv4(),
+          },
+        },
+      ),
+    {
+      onError: errorHandle,
+    },
+  );
+};
+
 // Get user information
 export interface BusinessUserInfo {
   userID: string;

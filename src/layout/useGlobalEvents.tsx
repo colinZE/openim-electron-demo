@@ -346,6 +346,8 @@ export function useGlobalEvent() {
         CustomType.CallingInvite <= customData.customType &&
         customData.customType <= CustomType.CallingHungup
       ) {
+        // 视频通话消息不推送到消息列表，但需要处理
+        console.log('收到视频通话消息:', customData);
         return;
       }
     }

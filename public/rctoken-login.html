@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Token 登录测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RC Token 登录测试</h1>
+        
+        <div class="info">
+            <strong>说明：</strong>此页面用于测试 RC Token 隐式登录功能。数据通过 POST 请求传递，不会暴露在 URL 中。
+        </div>
+        
+        <form id="implicitLoginForm">
+            <div class="form-group">
+                <label for="token">Token：</label>
+                <input type="text" id="token" name="token" placeholder="请输入登录Token" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="source">Source：</label>
+                <input type="text" id="source" name="source" placeholder="请输入来源标识（可选）">
+            </div>
+            
+            <div class="form-group">
+                <label for="redirect">重定向页面：</label>
+                <select id="redirect" name="redirect">
+                    <option value="/profile">个人资料</option>
+                    <option value="/contact">通讯录</option>
+                    <option value="/chat">聊天列表</option>
+                    <option value="/settings">设置</option>
+                </select>
+            </div>
+            
+            <button type="submit">执行隐式登录</button>
+        </form>
+        
+        <div id="result" style="margin-top: 20px; padding: 15px; border-radius: 4px; display: none;"></div>
+    </div>
+
+    <script>
+        document.getElementById('implicitLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {
+                token: formData.get('token'),
+                source: formData.get('source'),
+                redirect: formData.get('redirect')
+            };
+            
+            // 显示结果
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <h3>测试结果：</h3>
+                <p><strong>登录方式：</strong>RC Token 登录</p>
+                <p><strong>Token：</strong>${data.token ? data.token.substring(0, 20) + '...' : '未填写'}</p>
+                <p><strong>Source：</strong>${data.source || '未填写'}</p>
+                <p><strong>重定向：</strong>${data.redirect}</p>
+                <p><strong>状态：</strong>正在执行隐式登录...</p>
+            `;
+            
+            // 将数据存储到 sessionStorage
+            console.log('存储到sessionStorage的数据:', data);
+            sessionStorage.setItem('implicitLoginData', JSON.stringify(data));
+            console.log('sessionStorage存储完成，准备跳转...');
+            
+            // 跳转到登录页面
+            setTimeout(() => {
+                console.log('跳转到登录页面...');
+                window.location.href = '/#/login?implicit=true';
+            }, 1000);
+        });
+        
+        // 检查是否有返回结果
+        const urlParams = new URLSearchParams(window.location.search);
+        const result = urlParams.get('result');
+        if (result) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.style.backgroundColor = result === 'success' ? '#d4edda' : '#f8d7da';
+            resultDiv.style.border = result === 'success' ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+            resultDiv.innerHTML = `
+                <h3>登录结果：</h3>
+                <p><strong>状态：</strong>${result === 'success' ? '登录成功' : '登录失败'}</p>
+            `;
+        }
+    </script>
+</body>
+</html>

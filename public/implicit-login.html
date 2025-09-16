@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐式登录处理</title>
+</head>
+<body>
+    <script>
+        // 处理POST请求的隐式登录
+        function handleImplicitLogin() {
+            // 从URL参数获取数据（实际应用中应该从POST body获取）
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+            const password = urlParams.get('password');
+            const areaCode = urlParams.get('areaCode') || '+86';
+            const redirect = urlParams.get('redirect') || '/chat';
+            
+            if (email && password) {
+                // 设置全局变量
+                window.implicitLoginData = {
+                    email: email,
+                    password: password,
+                    areaCode: areaCode,
+                    redirect: redirect
+                };
+                
+                // 跳转到登录页面
+                window.location.href = '/#/login?implicit=true';
+            } else {
+                console.error('缺少必要的登录参数');
+                window.location.href = '/#/login';
+            }
+        }
+        
+        // 页面加载时执行
+        handleImplicitLogin();
+    </script>
+</body>
+</html>
