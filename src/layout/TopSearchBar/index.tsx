@@ -80,9 +80,9 @@ const TopSearchBar = () => {
           if (users.length === 0) {
             // 如果无法获取用户信息，使用默认信息
             userInfo = {
-              nickname: rtcInvite.inviterUserID,
+              nickname: rtcInvite!.inviterUserID,
               faceURL: "",
-              userID: rtcInvite.inviterUserID,
+              userID: rtcInvite!.inviterUserID,
               ex: "",
             };
           } else {
