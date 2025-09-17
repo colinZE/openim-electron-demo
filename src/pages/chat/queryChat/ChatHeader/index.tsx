@@ -10,6 +10,7 @@ import settings from "@/assets/images/chatHeader/settings.png";
 import OIMAvatar from "@/components/OIMAvatar";
 import { OverlayVisibleHandle } from "@/hooks/useOverlayVisible";
 import { useConversationStore, useUserStore } from "@/store";
+import { isEmbeddedMode } from "@/utils/common";
 import { emit } from "@/utils/events";
 
 import GroupSetting from "../GroupSetting";
@@ -91,6 +92,7 @@ const ChatHeader = () => {
 
   const isSingleSession = currentConversation?.conversationType === SessionType.Single;
   const isGroupSession = currentConversation?.conversationType === SessionType.Group;
+  const embedded = isEmbeddedMode();
 
   return (
     <Layout.Header className="relative border-b border-b-[var(--gap-text)] !bg-white !px-3">
@@ -117,28 +119,31 @@ const ChatHeader = () => {
             )}
           </div>
         </div>
-        <div className="mr-5 flex">
-          {menuList.map((menu) => {
-            if (menu.idx === 1 && (isSingleSession || (!inGroup && !isSingleSession))) {
-              return null;
-            }
-            if (menu.idx === 0 && !isSingleSession) {
-              return null;
-            }
+        {/* 在嵌入模式下隐藏右上角按钮 */}
+        {!embedded && (
+          <div className="mr-5 flex">
+            {menuList.map((menu) => {
+              if (menu.idx === 1 && (isSingleSession || (!inGroup && !isSingleSession))) {
+                return null;
+              }
+              if (menu.idx === 0 && !isSingleSession) {
+                return null;
+              }
 
-            return (
-              <Tooltip title={menu.title} key={menu.idx}>
-                <img
-                  className="ml-5 cursor-pointer"
-                  width={20}
-                  src={menu.icon}
-                  alt=""
-                  onClick={() => menuClick(menu.idx)}
-                />
-              </Tooltip>
-            );
-          })}
-        </div>
+              return (
+                <Tooltip title={menu.title} key={menu.idx}>
+                  <img
+                    className="ml-5 cursor-pointer"
+                    width={20}
+                    src={menu.icon}
+                    alt=""
+                    onClick={() => menuClick(menu.idx)}
+                  />
+                </Tooltip>
+              );
+            })}
+          </div>
+        )}
       </div>
       <SingleSetting ref={singleSettingRef} />
       <GroupSetting ref={groupSettingRef} />
