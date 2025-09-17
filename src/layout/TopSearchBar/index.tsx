@@ -6,6 +6,7 @@ import {
   WSEvent,
 } from "@openim/wasm-client-sdk/lib/types/entity";
 import { Popover } from "antd";
+import clsx from "clsx";
 import i18n, { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -18,6 +19,7 @@ import WindowControlBar from "@/components/WindowControlBar";
 import { CustomType } from "@/constants";
 import { OverlayVisibleHandle } from "@/hooks/useOverlayVisible";
 import ChooseModal, { ChooseModalState } from "@/pages/common/ChooseModal";
+import { isEmbeddedMode } from "@/utils/common";
 import GroupCardModal from "@/pages/common/GroupCardModal";
 import RtcCallModal from "@/pages/common/RtcCallModal";
 import { InviteData } from "@/pages/common/RtcCallModal/data";
@@ -171,8 +173,13 @@ const TopSearchBar = () => {
     groupCardRef.current?.openOverlay();
   }, []);
 
+  const embedded = isEmbeddedMode();
+
   return (
-    <div className="no-mobile app-drag flex h-10 min-h-[40px] items-center bg-[var(--top-search-bar)] dark:bg-[#141414]">
+    <div className={clsx(
+      "app-drag flex h-10 min-h-[40px] items-center bg-[var(--top-search-bar)] dark:bg-[#141414]",
+      { "no-mobile": !embedded, "hidden": embedded }
+    )}>
       <div className="flex w-full items-center justify-center">
         <div className="app-no-drag flex h-[26px] w-1/3 items-center justify-center rounded-md bg-[rgba(255,255,255,0.2)]"></div>
         <Popover

@@ -13,6 +13,7 @@ import {
   setIMProfile,
   setPhoneNumber,
 } from "@/utils/storage";
+import { setEmbeddedMode } from "@/utils/common";
 import { Platform } from "@/utils/platform";
 import { normalizeSingleConversationID } from "@/utils/imCommon";
 
@@ -63,10 +64,21 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const isImplicit = params.get('implicit') === 'true';
+    const isEmbedded = params.get('embedded') === 'true';
     
     console.log('登录页面加载，当前URL:', window.location.href);
     console.log('登录页面加载，location.search:', location.search);
     console.log('登录页面加载，所有URL参数:', Object.fromEntries(params.entries()));
+    
+    // 处理 embedded 参数
+    if (isEmbedded) {
+      console.log('检测到APP嵌入模式请求');
+      setEmbeddedMode(true);
+    } else {
+      // 如果没有embedded参数，确保清除嵌入模式
+      console.log('正常登录模式，清除嵌入模式');
+      setEmbeddedMode(false);
+    }
     
     if (isImplicit) {
       console.log('检测到APP隐式登录请求');

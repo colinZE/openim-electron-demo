@@ -15,7 +15,7 @@ import message_icon_active from "@/assets/images/nav/nav_bar_message_active.png"
 import change_avatar from "@/assets/images/profile/change_avatar.png";
 import OIMAvatar from "@/components/OIMAvatar";
 import { useContactStore, useConversationStore, useUserStore } from "@/store";
-import { feedbackToast } from "@/utils/common";
+import { feedbackToast, isEmbeddedMode } from "@/utils/common";
 import { emit } from "@/utils/events";
 import { uploadFile } from "@/utils/imCommon";
 
@@ -260,9 +260,14 @@ const LeftNavBar = memo(() => {
     </div>
   );
 
+  const embedded = isEmbeddedMode();
+
   return (
     <Sider
-      className="no-mobile border-r border-gray-200 !bg-[#F4F4F4] dark:border-gray-800 dark:!bg-[#141414]"
+      className={clsx(
+        "border-r border-gray-200 !bg-[#F4F4F4] dark:border-gray-800 dark:!bg-[#141414]",
+        { "no-mobile": !embedded, "hidden": embedded }
+      )}
       width={60}
       theme="light"
     >

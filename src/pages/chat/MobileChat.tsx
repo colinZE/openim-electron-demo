@@ -5,11 +5,13 @@ import { ArrowLeftOutlined, MoreOutlined } from "@ant-design/icons";
 
 import ConversationSider from "./ConversationSider";
 import { QueryChat } from "./queryChat";
+import { isEmbeddedMode } from "@/utils/common";
 
 const MobileChat = () => {
   const { conversationID } = useParams();
   const navigate = useNavigate();
   const [conversationDrawerVisible, setConversationDrawerVisible] = useState(false);
+  const embedded = isEmbeddedMode();
 
   // 如果没有选中对话，显示对话列表
   if (!conversationID) {
@@ -34,18 +36,22 @@ const MobileChat = () => {
   return (
     <Layout className="h-full">
       <Layout.Header className="bg-white px-4 flex items-center border-b">
-        <Button 
-          type="text" 
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/chat")}
-          className="mr-2"
-        />
+        {!embedded && (
+          <Button 
+            type="text" 
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/chat")}
+            className="mr-2"
+          />
+        )}
         <h1 className="text-lg font-medium m-0 flex-1">聊天</h1>
-        <Button 
-          type="text" 
-          icon={<MoreOutlined />}
-          onClick={() => setConversationDrawerVisible(true)}
-        />
+        {!embedded && (
+          <Button 
+            type="text" 
+            icon={<MoreOutlined />}
+            onClick={() => setConversationDrawerVisible(true)}
+          />
+        )}
       </Layout.Header>
       
       <Layout.Content className="flex-1 overflow-hidden">

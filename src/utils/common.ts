@@ -2,6 +2,20 @@ import { t } from "i18next";
 
 import { message } from "../AntdGlobalComp";
 
+// 检查是否处于APP嵌入模式
+export const isEmbeddedMode = (): boolean => {
+  return localStorage.getItem('APP_EMBEDDED_MODE') === 'true';
+};
+
+// 设置APP嵌入模式
+export const setEmbeddedMode = (embedded: boolean): void => {
+  if (embedded) {
+    localStorage.setItem('APP_EMBEDDED_MODE', 'true');
+  } else {
+    localStorage.removeItem('APP_EMBEDDED_MODE');
+  }
+};
+
 type FeedbackToastParams = {
   msg?: string | null;
   error?: unknown;

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清除嵌入模式</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover { background: #0056b3; }
+        .button.danger { background: #dc3545; }
+        .button.danger:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <h1>清除嵌入模式状态</h1>
+    
+    <div id="status" class="status info">
+        检查中...
+    </div>
+    
+    <div>
+        <button class="button" onclick="clearEmbeddedMode()">清除嵌入模式</button>
+        <button class="button" onclick="checkStatus()">检查状态</button>
+        <button class="button danger" onclick="clearAllStorage()">清除所有存储</button>
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <h3>说明：</h3>
+        <ul>
+            <li><strong>清除嵌入模式</strong>：只清除嵌入模式相关的localStorage</li>
+            <li><strong>检查状态</strong>：查看当前的嵌入模式状态</li>
+            <li><strong>清除所有存储</strong>：清除所有localStorage数据（包括登录信息）</li>
+        </ul>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const isEmbedded = localStorage.getItem('APP_EMBEDDED_MODE') === 'true';
+            const statusDiv = document.getElementById('status');
+            
+            if (isEmbedded) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '当前状态：嵌入模式已启用 (APP_EMBEDDED_MODE = true)';
+            } else {
+                statusDiv.className = 'status info';
+                statusDiv.textContent = '当前状态：正常模式 (APP_EMBEDDED_MODE 未设置或为false)';
+            }
+        }
+
+        function clearEmbeddedMode() {
+            localStorage.removeItem('APP_EMBEDDED_MODE');
+            document.getElementById('status').className = 'status success';
+            document.getElementById('status').textContent = '已清除嵌入模式状态';
+        }
+
+        function clearAllStorage() {
+            if (confirm('确定要清除所有localStorage数据吗？这将清除登录信息等所有数据。')) {
+                localStorage.clear();
+                document.getElementById('status').className = 'status success';
+                document.getElementById('status').textContent = '已清除所有localStorage数据';
+            }
+        }
+
+        // 页面加载时检查状态
+        window.addEventListener('load', checkStatus);
+    </script>
+</body>
+</html>

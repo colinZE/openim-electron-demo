@@ -19,6 +19,7 @@ import emitter from "../../utils/events";
 import { getBusinessUserInfo } from "../../api/login";
 import { CustomType } from "../../constants";
 import { IMSDK } from "../../layout/MainContentWrap";
+import { isEmbeddedMode } from "../../utils/common";
 
 const MobileLayout = () => {
   const location = useLocation();
@@ -148,16 +149,18 @@ const MobileLayout = () => {
   }
 
   const currentTab = getCurrentTab();
+  const embedded = isEmbeddedMode();
 
   return (
     <div className="h-screen flex flex-col">
       {/* 主内容区域 */}
-      <div className="flex-1 overflow-hidden pb-14">
+      <div className={`flex-1 overflow-hidden ${embedded ? 'pb-0' : 'pb-14'}`}>
         <Outlet />
       </div>
       
-      {/* 底部导航 */}
-      <Layout.Footer className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-0 h-14">
+      {/* 底部导航 - 在embedded模式下隐藏 */}
+      {!embedded && (
+        <Layout.Footer className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-0 h-14">
         <div className="flex h-full">
           <div 
             className={`flex-1 flex flex-col items-center justify-center cursor-pointer ${
@@ -196,7 +199,8 @@ const MobileLayout = () => {
             <span className="text-xs">设置</span>
           </div>
         </div>
-      </Layout.Footer>
+        </Layout.Footer>
+      )}
       
       {/* RTC通话模态框 */}
       <RtcCallModal ref={rtcRef} inviteData={inviteData} />
