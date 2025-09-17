@@ -14,6 +14,7 @@ import {
   setPhoneNumber,
 } from "@/utils/storage";
 import { Platform } from "@/utils/platform";
+import { normalizeSingleConversationID } from "@/utils/imCommon";
 
 import { areaCode } from "./areaCode";
 import type { FormType } from "./index";
@@ -222,8 +223,15 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
           console.log('Token隐式登录成功，重定向路径:', params.redirectPath);
           
           if (params.redirectPath) {
-            console.log('Token隐式登录成功，跳转到指定页面:', params.redirectPath);
-            navigate(params.redirectPath);
+            // 如果重定向路径是会话ID格式（si_xxx_xxx），需要添加/chat前缀并标准化
+            let finalRedirectPath = params.redirectPath;
+            if (params.redirectPath.startsWith('si_') && !params.redirectPath.startsWith('/chat/')) {
+              // 标准化会话ID，确保用户ID按字典序排列
+              const normalizedConversationID = normalizeSingleConversationID(params.redirectPath);
+              finalRedirectPath = `/chat/${normalizedConversationID}`;
+            }
+            console.log('Token隐式登录成功，跳转到指定页面:', finalRedirectPath);
+            navigate(finalRedirectPath);
           } else {
             console.log('Token隐式登录成功，跳转到默认聊天页面');
             navigate("/chat");

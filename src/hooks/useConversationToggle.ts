@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { IMSDK } from "@/layout/MainContentWrap";
 import { useConversationStore } from "@/store";
 import { feedbackToast } from "@/utils/common";
+import { normalizeSingleConversationID } from "@/utils/imCommon";
 
 export type ToSpecifiedConversationParams = {
   sourceID: string;
@@ -58,7 +59,9 @@ export function useConversationToggle() {
       )
         return;
       await updateCurrentConversation({ ...conversation }, isJump);
-      navigate(`/chat/${conversation.conversationID}`);
+      // 确保会话ID标准化，特别是单聊会话
+      const normalizedConversationID = normalizeSingleConversationID(conversation.conversationID);
+      navigate(`/chat/${normalizedConversationID}`);
     },
     [],
   );

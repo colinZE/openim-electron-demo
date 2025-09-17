@@ -495,3 +495,27 @@ export const getConversationIDByMsg = (message: MessageItem) => {
   }
   return "";
 };
+
+/**
+ * 标准化单聊会话ID，确保用户ID按字典序排列
+ * @param conversationID 原始会话ID，格式如 si_userID1_userID2
+ * @returns 标准化后的会话ID
+ */
+export const normalizeSingleConversationID = (conversationID: string): string => {
+  if (!conversationID.startsWith('si_')) {
+    return conversationID;
+  }
+  
+  // 解析会话ID: si_userID1_userID2
+  const parts = conversationID.split('_');
+  if (parts.length !== 3) {
+    return conversationID;
+  }
+  
+  const [, userID1, userID2] = parts;
+  
+  // 按字典序排列用户ID
+  const sortedIDs = [userID1, userID2].sort();
+  
+  return `si_${sortedIDs[0]}_${sortedIDs[1]}`;
+};

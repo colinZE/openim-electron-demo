@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
-import { useUserStore } from "@/store";
+import { useUserStore, useConversationStore } from "@/store";
 import emitter, { emit } from "@/utils/events";
+import { normalizeSingleConversationID } from "@/utils/imCommon";
 
 const START_INDEX = 10000;
 const SPLIT_COUNT = 20;
@@ -15,6 +16,7 @@ export function useHistoryMessageList() {
   const connectState = useUserStore((state) => state.connectState);
   const syncState = useUserStore((state) => state.syncState);
   const selfInfo = useUserStore((state) => state.selfInfo);
+  const currentConversation = useConversationStore((state) => state.currentConversation);
   const [loadState, setLoadState] = useState({
     initLoading: true,
     hasMoreOld: true,
@@ -106,8 +108,13 @@ export function useHistoryMessageList() {
           return;
         }
 
-        console.log("Loading history messages for conversation:", conversationID);
-        const reqConversationID = conversationID;
+        // 使用当前会话的实际ID，而不是URL中的ID
+        const actualConversationID = currentConversation?.conversationID || normalizeSingleConversationID(conversationID || '');
+        console.log("Loading history messages for conversation:", actualConversationID);
+        console.log("URL conversationID:", conversationID);
+        console.log("Current conversation ID:", currentConversation?.conversationID);
+        
+        const reqConversationID = actualConversationID;
         const sdk = await getIMSDK();
         
         // 检查SDK状态
@@ -118,8 +125,8 @@ export function useHistoryMessageList() {
         console.log("User logged in:", selfInfo.userID);
 
         // 验证会话ID格式
-        if (!conversationID || conversationID.length < 10) {
-          console.warn("Invalid conversationID:", conversationID);
+        if (!actualConversationID || actualConversationID.length < 10) {
+          console.warn("Invalid conversationID:", actualConversationID);
           setLoadState((preState) => ({
             ...preState,
             initLoading: false,
@@ -133,14 +140,14 @@ export function useHistoryMessageList() {
           startClientMsgID: loadMore
             ? latestLoadState.current?.messageList[0]?.clientMsgID
             : "",
-          conversationID: conversationID,
+          conversationID: actualConversationID,
           viewType: ViewType.History,
         };
         
         console.log("Calling getAdvancedHistoryMessageList with params:", params);
         const { data } = await sdk.getAdvancedHistoryMessageList(params);
         
-        if (conversationID !== reqConversationID) return;
+        if (actualConversationID !== reqConversationID) return;
         
         console.log("History messages loaded:", data.messageList?.length || 0, "messages");
         setTimeout(() =>
