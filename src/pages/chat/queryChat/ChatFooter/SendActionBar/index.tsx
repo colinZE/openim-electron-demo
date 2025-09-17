@@ -23,19 +23,20 @@ const sendActionList = [
     comp: null,
     placement: undefined,
   },
-  {
-    title: t("placeholder.call"),
-    icon: rtc,
-    key: "rtc",
-    accept: undefined,
-    comp: <CallPopContent />,
-    placement: "top",
-  },
+  // 隐藏通话按钮
+  // {
+  //   title: t("placeholder.call"),
+  //   icon: rtc,
+  //   key: "rtc",
+  //   accept: undefined,
+  //   comp: <CallPopContent />,
+  //   placement: "top",
+  // },
 ];
 
 i18n.on("languageChanged", () => {
   sendActionList[0].title = t("placeholder.image");
-  sendActionList[1].title = t("placeholder.call");
+  // sendActionList[1].title = t("placeholder.call"); // 已隐藏通话按钮
 });
 
 const SendActionBar = ({
@@ -66,7 +67,7 @@ const SendActionBar = ({
           return null;
         }
         const popProps: PopoverProps = {
-          placement: action.placement as TooltipPlacement,
+          placement: action.placement || "top",
           content:
             action.comp &&
             React.cloneElement(action.comp as React.ReactElement, {

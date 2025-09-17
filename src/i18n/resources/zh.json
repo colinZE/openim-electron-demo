@@ -50,7 +50,7 @@
     "unfriendFailed": "解除好友失败！",
     "getMessageListFailed": "获取消息列表失败！",
     "sendApplicationFailed": "发送请求失败！",
-    "loading": "登录中...",
+    "loading": "人工正在赶来的路上...",
     "syncing": "同步中...",
     "syncFailed": "同步失败！",
     "appUpdate": "应用程序更新",

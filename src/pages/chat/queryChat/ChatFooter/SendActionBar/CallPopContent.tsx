@@ -15,11 +15,12 @@ const callList = [
     title: t("placeholder.videoCall"),
     icon: call_video,
   },
-  {
-    idx: 1,
-    title: t("placeholder.voiceCall"),
-    icon: call_audio,
-  },
+  // 隐藏语音通话按钮
+  // {
+  //   idx: 1,
+  //   title: t("placeholder.voiceCall"),
+  //   icon: call_audio,
+  // },
 ];
 
 const CallPopContent = ({ closeAllPop }: { closeAllPop?: () => void }) => {
