@@ -1,0 +1,39 @@
+diff --git a/node_modules/@openim/wasm-client-sdk/lib/index.es.js b/node_modules/@openim/wasm-client-sdk/lib/index.es.js
+index 70b700d..11e1842 100644
+--- a/node_modules/@openim/wasm-client-sdk/lib/index.es.js
++++ b/node_modules/@openim/wasm-client-sdk/lib/index.es.js
+@@ -996,7 +996,7 @@ async function fetchWithCache(url) {
+     return fetchAndUpdateCache(url, cache);
+ }
+ async function fetchAndUpdateCache(url, cache) {
+-    const response = await fetch(url, { cache: 'no-cache' });
++    const response = await fetch(url, { cache: 'default' });
+     try {
+         await cache.put(url, response.clone());
+     }
+diff --git a/node_modules/@openim/wasm-client-sdk/lib/index.js b/node_modules/@openim/wasm-client-sdk/lib/index.js
+index 59808cf..9008cd1 100644
+--- a/node_modules/@openim/wasm-client-sdk/lib/index.js
++++ b/node_modules/@openim/wasm-client-sdk/lib/index.js
+@@ -1000,7 +1000,7 @@ async function fetchWithCache(url) {
+     return fetchAndUpdateCache(url, cache);
+ }
+ async function fetchAndUpdateCache(url, cache) {
+-    const response = await fetch(url, { cache: 'no-cache' });
++    const response = await fetch(url, { cache: 'default' });
+     try {
+         await cache.put(url, response.clone());
+     }
+diff --git a/node_modules/@openim/wasm-client-sdk/lib/index.umd.js b/node_modules/@openim/wasm-client-sdk/lib/index.umd.js
+index 52f8589..4e7b343 100644
+--- a/node_modules/@openim/wasm-client-sdk/lib/index.umd.js
++++ b/node_modules/@openim/wasm-client-sdk/lib/index.umd.js
+@@ -1002,7 +1002,7 @@
+       return fetchAndUpdateCache(url, cache);
+   }
+   async function fetchAndUpdateCache(url, cache) {
+-      const response = await fetch(url, { cache: 'no-cache' });
++      const response = await fetch(url, { cache: 'default' });
+       try {
+           await cache.put(url, response.clone());
+       }
