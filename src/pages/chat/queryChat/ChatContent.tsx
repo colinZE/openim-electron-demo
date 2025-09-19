@@ -15,6 +15,11 @@ import { useHistoryMessageList } from "./useHistoryMessageList";
 const ChatContent = () => {
   const virtuoso = useRef<VirtuosoHandle>(null);
   const selfUserID = useUserStore((state) => state.selfInfo.userID);
+  
+  // 检查全局 loading 状态，避免重复显示 loading
+  const syncState = useUserStore((state) => state.syncState);
+  const connectState = useUserStore((state) => state.connectState);
+  const isGlobalLoading = syncState === "loading" || connectState === "loading";
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -54,12 +59,7 @@ const ChatContent = () => {
       className="relative flex h-full overflow-hidden !bg-white"
       id="chat-main"
     >
-      {loadState.initLoading ? (
-        <div className="flex h-full w-full items-center justify-center bg-white pt-1">
-          <Spin spinning />
-          <div className="ml-2">Loading messages...</div>
-        </div>
-      ) : loadState.messageList.length === 0 ? (
+      {loadState.messageList.length === 0 ? (
         <div className="flex h-full w-full items-center justify-center bg-white pt-1">
           <div className="text-gray-500">No messages found</div>
         </div>
