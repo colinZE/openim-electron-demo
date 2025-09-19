@@ -2,114 +2,50 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>资源预加载</title>
-  
-  <!-- WASM文件预加载 -->
-  <link rel="preload" as="fetch" href="/openIM.wasm" type="application/wasm">
-  <link rel="preload" as="fetch" href="/sql-wasm.wasm" type="application/wasm">
-  
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .title {
-      font-size: 18px;
-      margin-bottom: 15px;
-      color: #333;
-    }
-    .status {
-      margin: 10px 0;
-      color: #666;
-    }
-    .resource-list {
-      margin-top: 20px;
-    }
-    .resource-item {
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
-    }
-    .progress {
-      margin: 15px 0;
-      color: #007bff;
-    }
-  </style>
+  <title></title>
+  <!-- <link rel="preload" as="fetch" href="https://openim-test-h5.yixin.com/openIM.wasm" type="application/wasm"> -->
+  <link rel="preload" as="fetch" href="https://openim-test-h5.yixin.com/sql-wasm.wasm" type="application/wasm">
+  <link rel="stylesheet" as="style" href="https://openim-test-h5.yixin.com/assets/index-63e913d8.css">
+  <link rel="stylesheet" as="style" href="https://openim-test-h5.yixin.com/assets/index-f459ea04.css">
+  <link rel="stylesheet" as="style" href="https://openim-test-h5.yixin.com/assets/index-de787424.css">
 </head>
 
 <body>
-  <div class="container">
-    <div class="title">OpenIM 资源预加载</div>
-    <div class="status" id="status">初始化中...</div>
-    
-    <div class="resource-list">
-      <div class="resource-item">
-        <span>主模块 (openIM.wasm)</span>
-        <span id="wasm1-status">等待中</span>
-      </div>
-      <div class="resource-item">
-        <span>数据库模块 (sql-wasm.wasm)</span>
-        <span id="wasm2-status">等待中</span>
-      </div>
-    </div>
-    
-    <div class="progress" id="progress">0/2 已完成</div>
-  </div>
+  <div id="app"></div>
+
 
   <script>
-    let loadedCount = 0;
-    const totalResources = 2;
-    
-    function updateStatus() {
-      const status = document.getElementById('status');
-      const progress = document.getElementById('progress');
-      
-      progress.textContent = `${loadedCount}/${totalResources} 已完成`;
-      
-      if (loadedCount >= totalResources) {
-        status.textContent = '预加载完成！';
-        
-        // 通知父页面
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({
-            type: 'preload_complete',
-            timestamp: Date.now()
-          }, '*');
-        }
-      } else {
-        status.textContent = '正在加载资源...';
-      }
+    if (("caches" in window)) {
+      cacheIm()
     }
-    
-    function checkResource(url, statusId) {
-      fetch(url, { method: 'HEAD' })
-        .then(() => {
-          loadedCount++;
-          document.getElementById(statusId).textContent = '已加载';
-          updateStatus();
-        })
-        .catch(() => {
-          document.getElementById(statusId).textContent = '加载失败';
-          updateStatus();
+    async function cacheIm() {
+      const key = "openim-wasm-cache";
+      const fileName = "./openIM.wasm";
+      const n = await caches.open(key);
+      const r = await n.match(fileName);
+
+      const e = async (cachedResponse) => {
+        const i = await fetch(fileName, {
+          method: "HEAD"
         });
+        const o = i.headers.get("ETag");
+        const s = i.headers.get("Last-Modified");
+        return i.ok && (o !== (cachedResponse == null ? void 0 : cachedResponse.headers.get("ETag")) || s !== (cachedResponse == null ? void 0 : cachedResponse.headers.get("Last-Modified")))
+      };
+
+      return r && !await e(r) ? r : R_e(fileName, n)
     }
-    
-    // 开始检查资源
-    setTimeout(() => {
-      checkResource('/openIM.wasm', 'wasm1-status');
-      checkResource('/sql-wasm.wasm', 'wasm2-status');
-    }, 500);
+    async function R_e(fileName, cache) {
+      const response = await fetch(fileName, {
+        cache: "default"
+      });
+      try {
+        await cache.put(fileName, response.clone())
+      } catch (error) {
+        console.warn("Failed to put cache")
+      }
+      return response;
+    }
   </script>
 </body>
 
