@@ -59,9 +59,8 @@ export function useConversationToggle() {
       )
         return;
       await updateCurrentConversation({ ...conversation }, isJump);
-      // 确保会话ID标准化，特别是单聊会话
-      const normalizedConversationID = normalizeSingleConversationID(conversation.conversationID);
-      navigate(`/chat/${normalizedConversationID}`);
+      // 直接使用SDK返回的会话ID，让SDK自己处理一致性
+      navigate(`/chat/${conversation.conversationID}`);
     },
     [],
   );

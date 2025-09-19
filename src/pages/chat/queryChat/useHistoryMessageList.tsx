@@ -18,34 +18,40 @@ export function useHistoryMessageList() {
   const syncState = useUserStore((state) => state.syncState);
   const selfInfo = useUserStore((state) => state.selfInfo);
   const currentConversation = useConversationStore((state) => state.currentConversation);
+  
+  // 🚨 恢复到官方原本的简单状态管理
   const [loadState, setLoadState] = useState({
     initLoading: true,
     hasMoreOld: true,
     messageList: [] as MessageItem[],
     firstItemIndex: START_INDEX,
   });
+  
   const latestLoadState = useLatest(loadState);
 
   useEffect(() => {
-    // 只有在连接成功、同步完成且用户信息加载完成时才加载历史消息
-    console.log("useHistoryMessageList: Checking connection state", { 
+    // 🚨 修复：添加前置条件检查，确保所有状态就绪后再加载消息
+    console.log("useHistoryMessageList: Checking prerequisites", { 
       connectState, 
       syncState, 
       conversationID,
-      selfInfo: selfInfo,
-      hasUserID: !!selfInfo.userID
+      hasUserID: !!selfInfo.userID,
+      hasConversationID: !!conversationID
     });
     
-    if (connectState === "success" && syncState === "success" && selfInfo.userID) {
-      console.log("useHistoryMessageList: All conditions met, loading messages");
+    // 只有在所有前置条件都满足时才加载历史消息
+    if (connectState === "success" && syncState === "success" && selfInfo.userID && conversationID) {
+      console.log("useHistoryMessageList: All prerequisites met, loading messages");
       loadHistoryMessages();
     } else {
-      console.log("useHistoryMessageList: Waiting for all conditions to be met...", { 
+      console.log("useHistoryMessageList: Waiting for prerequisites...", { 
         connectState, 
         syncState, 
-        hasUserID: !!selfInfo.userID 
+        hasUserID: !!selfInfo.userID,
+        hasConversationID: !!conversationID
       });
     }
+    
     return () => {
       setLoadState(() => ({
         initLoading: true,
@@ -56,47 +62,10 @@ export function useHistoryMessageList() {
     };
   }, [conversationID, connectState, syncState, selfInfo.userID]);
 
+  // 🚨 新的状态管理方式已经解决了会话切换问题，不再需要额外的清理逻辑
+
   useEffect(() => {
     const pushNewMessage = (message: MessageItem) => {
-      // 🚨 智能消息接收安全检查
-      const currentConversationId = window.location.hash.match(/\/chat\/(.+)$/)?.[1];
-      
-      // 只在真正有问题时才阻止消息显示
-      const conflictingTabs = multiTabDetector.getConflictingTabs();
-      if (conflictingTabs.length > 0 && currentConversationId) {
-        const hasConversationConflict = conflictingTabs.some(tab => 
-          tab.conversationId === currentConversationId
-        );
-        
-        if (hasConversationConflict) {
-          console.warn("🚨 Multi-tab conflict detected, but allowing message:", {
-            messageId: message.clientMsgID,
-            conversationId: currentConversationId,
-            conflictingTabs: conflictingTabs.map(t => t.tabId)
-          });
-          // 不阻止，继续显示消息
-        }
-      }
-      
-      // 验证消息是否属于当前会话 - 保持这个验证
-      if (currentConversationId && currentConversation) {
-        const messageBelongsToCurrentConversation = 
-          (message.recvID && (message.recvID === currentConversation.userID || message.recvID === selfInfo.userID)) ||
-          (message.groupID && message.groupID === currentConversation.groupID);
-        
-        if (!messageBelongsToCurrentConversation) {
-          console.warn("🚨 Message conversation mismatch, dropping:", {
-            messageRecvID: message.recvID,
-            messageGroupID: message.groupID,
-            currentConversationUserID: currentConversation.userID,
-            currentConversationGroupID: currentConversation.groupID,
-            urlConversationID: conversationID,
-            messageId: message.clientMsgID
-          });
-          return;
-        }
-      }
-
       if (
         latestLoadState.current?.messageList.find(
           (item) => item.clientMsgID === message.clientMsgID,
@@ -136,77 +105,26 @@ export function useHistoryMessageList() {
 
   const { loading: moreOldLoading, runAsync: getMoreOldMessages } = useRequest(
     async (loadMore = true) => {
-      try {
-        // 验证conversationID
-        if (!conversationID) {
-          console.warn("No conversationID provided, skipping history load");
-          setLoadState((preState) => ({
-            ...preState,
-            initLoading: false,
-            hasMoreOld: false,
-          }));
-          return;
-        }
-
-        // 使用当前会话的实际ID，而不是URL中的ID
-        const actualConversationID = currentConversation?.conversationID || normalizeSingleConversationID(conversationID || '');
-        console.log("Loading history messages for conversation:", actualConversationID);
-        console.log("URL conversationID:", conversationID);
-        console.log("Current conversation ID:", currentConversation?.conversationID);
-        
-        const reqConversationID = actualConversationID;
-        const sdk = await getIMSDK();
-        
-        // 检查SDK状态
-        if (!sdk) {
-          throw new Error("SDK not available");
-        }
-
-        console.log("User logged in:", selfInfo.userID);
-
-        // 验证会话ID格式
-        if (!actualConversationID || actualConversationID.length < 10) {
-          console.warn("Invalid conversationID:", actualConversationID);
-          setLoadState((preState) => ({
-            ...preState,
-            initLoading: false,
-            hasMoreOld: false,
-          }));
-          return;
-        }
-
-        const params = {
-          count: SPLIT_COUNT,
-          startClientMsgID: loadMore
-            ? latestLoadState.current?.messageList[0]?.clientMsgID
-            : "",
-          conversationID: actualConversationID,
-          viewType: ViewType.History,
-        };
-        
-        console.log("Calling getAdvancedHistoryMessageList with params:", params);
-        const { data } = await sdk.getAdvancedHistoryMessageList(params);
-        
-        if (actualConversationID !== reqConversationID) return;
-        
-        console.log("History messages loaded:", data.messageList?.length || 0, "messages");
-        setTimeout(() =>
-          setLoadState((preState) => ({
-            ...preState,
-            initLoading: false,
-            hasMoreOld: !data.isEnd,
-            messageList: [...data.messageList, ...(loadMore ? preState.messageList : [])],
-            firstItemIndex: preState.firstItemIndex - data.messageList.length,
-          })),
-        );
-      } catch (error) {
-        console.error("Failed to load history messages:", error);
+      const reqConversationID = conversationID;
+      const { data } = await IMSDK.getAdvancedHistoryMessageList({
+        count: SPLIT_COUNT,
+        startClientMsgID: loadMore
+          ? latestLoadState.current?.messageList[0]?.clientMsgID
+          : "",
+        conversationID: conversationID ?? "",
+        viewType: ViewType.History,
+      });
+      // 🚨 关键检查：防止异步请求的竞态条件
+      if (conversationID !== reqConversationID) return;
+      setTimeout(() =>
         setLoadState((preState) => ({
           ...preState,
           initLoading: false,
-          hasMoreOld: false,
-        }));
-      }
+          hasMoreOld: !data.isEnd,
+          messageList: [...data.messageList, ...(loadMore ? preState.messageList : [])],
+          firstItemIndex: preState.firstItemIndex - data.messageList.length,
+        })),
+      );
     },
     {
       manual: true,

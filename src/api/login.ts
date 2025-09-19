@@ -149,8 +149,19 @@ export const useLogin = () => {
 // token login (for implicit login)
 export const useTokenLogin = () => {
   return useMutation(
-    (params: { token: string; source?: string }) =>
-      request.post<{ chatToken: string; imToken: string; userID: string }>(
+    (params: { token: string; source?: string }) => {
+      console.log('🔧 Token登录请求详情:');
+      console.log('请求URL:', '/account/rc/login');
+      console.log('请求参数:', {
+        token: params.token,
+        source: params.source,
+        platform,
+      });
+      console.log('请求头:', {
+        operationID: uuidv4(),
+      });
+      
+      return request.post<{ chatToken: string; imToken: string; userID: string }>(
         "/account/rc/login",
         {
           token: params.token,
@@ -162,9 +173,13 @@ export const useTokenLogin = () => {
             operationID: uuidv4(),
           },
         },
-      ),
+      );
+    },
     {
-      onError: errorHandle,
+      onError: (error) => {
+        console.error('🔧 Token登录失败详情:', error);
+        errorHandle(error);
+      },
     },
   );
 };

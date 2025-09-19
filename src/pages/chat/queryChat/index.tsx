@@ -4,9 +4,10 @@ import { useUnmount } from "ahooks";
 import { Layout } from "antd";
 import { t } from "i18next";
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import { useConversationStore, useUserStore } from "@/store";
+import { getIMSDK } from "@/layout/MainContentWrap";
 import { normalizeSingleConversationID } from "@/utils/imCommon";
 
 import ChatContent from "./ChatContent";
@@ -16,6 +17,7 @@ import useConversationState from "./useConversationState";
 
 export const QueryChat = () => {
   const { conversationID } = useParams();
+  const navigate = useNavigate();
   const updateCurrentConversation = useConversationStore(
     (state) => state.updateCurrentConversation,
   );
@@ -29,53 +31,78 @@ export const QueryChat = () => {
       console.log("Current conversationList length:", conversationList.length);
       console.log("Current conversation:", currentConversation);
       
-      // 标准化会话ID，确保单聊会话ID按字典序排列
+      // 🎯 标准化会话ID，确保与SDK保持一致
       const normalizedConversationID = normalizeSingleConversationID(conversationID);
+      console.log("Original conversationID:", conversationID);
       console.log("Normalized conversationID:", normalizedConversationID);
       
-      if (conversationList.length > 0) {
-        // 从会话列表中查找匹配的会话
-        // 先尝试查找标准化后的ID，如果找不到再查找原始ID
-        let foundConversation = conversationList.find(
-          (conv) => conv.conversationID === normalizedConversationID
-        );
+      // 如果会话ID被标准化了，需要重定向到标准化的URL
+      if (normalizedConversationID !== conversationID) {
+        console.log("会话ID需要标准化，重定向到:", normalizedConversationID);
+        navigate(`/chat/${normalizedConversationID}`, { replace: true });
+        return;
+      }
+            
+            if (conversationList.length > 0) {
+              // 从会话列表中查找匹配的会话
+              let foundConversation = conversationList.find(
+                (conv) => conv.conversationID === normalizedConversationID
+              );
         
-        // 如果标准化ID找不到，尝试查找原始ID
-        if (!foundConversation) {
-          foundConversation = conversationList.find(
-            (conv) => conv.conversationID === conversationID
-          );
-        }
-        
-        console.log("Found conversation:", foundConversation);
-        console.log("All conversation IDs:", conversationList.map(c => c.conversationID));
-        console.log("Looking for normalized ID:", normalizedConversationID);
-        console.log("Looking for original ID:", conversationID);
+              console.log("Found conversation:", foundConversation);
+              console.log("All conversation IDs:", conversationList.map(c => c.conversationID));
+              console.log("Looking for ID:", conversationID);
         
         if (foundConversation && foundConversation.conversationID !== currentConversation?.conversationID) {
+          console.log("=== 会话切换调试 ===");
+          console.log("Found conversation:", foundConversation);
+          console.log("Current conversation:", currentConversation);
           console.log("Setting current conversation from URL:", foundConversation);
           updateCurrentConversation(foundConversation);
-        } else if (!foundConversation) {
-          console.log("Conversation not found in list, creating temporary conversation");
-          // 如果会话列表中找不到，尝试从conversationID解析用户ID
-          const parts = normalizedConversationID.split('_');
-          console.log("Parsing conversationID parts:", parts);
+          console.log("Current conversation updated");
+              } else if (!foundConversation) {
+                console.log("Conversation not found in list, creating temporary conversation");
+                // 如果会话列表中找不到，尝试从conversationID解析用户ID
+                const parts = conversationID.split('_');
+                console.log("Parsing conversationID parts:", parts);
           
           if (parts.length === 3 && parts[0] === 'si') {
             // 格式: si_用户ID1_用户ID2
             const userID1 = parts[1];
             const userID2 = parts[2];
             const selfInfo = useUserStore.getState().selfInfo;
-            const otherUserID = selfInfo.userID === userID1 ? userID2 : userID1;
+            let otherUserID = selfInfo.userID === userID1 ? userID2 : userID1;
             
             console.log("=== 调试用户ID计算 ===");
-            console.log("会话ID:", normalizedConversationID);
+            console.log("会话ID:", conversationID);
             console.log("解析的部分:", parts);
             console.log("用户ID1:", userID1);
             console.log("用户ID2:", userID2);
             console.log("当前用户ID:", selfInfo.userID);
+            console.log("当前用户ID类型:", typeof selfInfo.userID);
+            console.log("用户ID1类型:", typeof userID1);
+            console.log("用户ID2类型:", typeof userID2);
+            console.log("selfInfo.userID === userID1:", selfInfo.userID === userID1);
+            console.log("selfInfo.userID === userID2:", selfInfo.userID === userID2);
+            console.log("selfInfo.userID == userID1:", selfInfo.userID == userID1);
+            console.log("selfInfo.userID == userID2:", selfInfo.userID == userID2);
+            console.log("selfInfo.userID?.toString() === userID1:", selfInfo.userID?.toString() === userID1);
+            console.log("selfInfo.userID?.toString() === userID2:", selfInfo.userID?.toString() === userID2);
             console.log("计算的对方用户ID:", otherUserID);
             console.log("Creating temporary conversation for userID:", otherUserID);
+            
+            // 如果selfInfo.userID为空或未定义，尝试从localStorage获取
+            if (!selfInfo.userID) {
+              console.log("selfInfo.userID为空，尝试从localStorage获取");
+              const storedUserID = localStorage.getItem("IM_USERID");
+              console.log("从localStorage获取的userID:", storedUserID);
+              if (storedUserID) {
+                const otherUserIDFromStorage = storedUserID === userID1 ? userID2 : userID1;
+                console.log("使用localStorage userID计算的对方用户ID:", otherUserIDFromStorage);
+                // 更新otherUserID
+                otherUserID = otherUserIDFromStorage;
+              }
+            }
             
             // 异步获取用户信息并创建临时会话
             const createTempConversation = async () => {
@@ -83,25 +110,25 @@ export const QueryChat = () => {
               let faceURL = "";
               
               try {
-                console.log("=== 开始获取用户信息 ===");
-                console.log("请求的用户ID:", [otherUserID]);
-                const { getBusinessUserInfo } = await import("@/api/login");
-                const response = await getBusinessUserInfo([otherUserID]);
-                console.log("API响应:", response);
-                
-                if (response?.data?.users && response.data.users.length > 0) {
-                  const userInfo = response.data.users[0];
-                  console.log("获取到的用户信息:", userInfo);
-                  showName = userInfo.nickname || `User_${otherUserID}`;
-                  faceURL = userInfo.faceURL || "";
-                  console.log("最终设置的显示名称:", showName);
-                  console.log("最终设置的头像:", faceURL);
-                } else {
-                  console.log("API返回空用户列表或无效响应");
+                  console.log("=== 开始获取用户信息 ===");
+                  console.log("请求的用户ID:", [otherUserID]);
+                  const { getBusinessUserInfo } = await import("@/api/login");
+                  const response = await getBusinessUserInfo([otherUserID]);
+                  console.log("API响应:", response);
+                  
+                  if (response?.data?.users && response.data.users.length > 0) {
+                    const userInfo = response.data.users[0];
+                    console.log("获取到的用户信息:", userInfo);
+                    showName = userInfo.nickname || `User_${otherUserID}`;
+                    faceURL = userInfo.faceURL || "";
+                    console.log("最终设置的显示名称:", showName);
+                    console.log("最终设置的头像:", faceURL);
+                  } else {
+                    console.log("API返回空用户列表或无效响应");
+                  }
+                } catch (error) {
+                  console.error("获取用户信息失败:", error);
                 }
-              } catch (error) {
-                console.error("获取用户信息失败:", error);
-              }
               
               const tempConversation = {
                 conversationID: normalizedConversationID,
@@ -126,7 +153,9 @@ export const QueryChat = () => {
                 attachedInfo: "",
                 ex: "",
               };
+              console.log("Creating temporary conversation:", tempConversation);
               updateCurrentConversation(tempConversation);
+              console.log("Temporary conversation created and set");
             };
             
             createTempConversation();
@@ -193,7 +222,7 @@ export const QueryChat = () => {
       } else {
         console.log("Conversation list is empty, creating temporary conversation");
         // 会话列表为空时，也需要尝试创建临时会话
-        const parts = normalizedConversationID.split('_');
+        const parts = conversationID.split('_');
         console.log("Parsing conversationID parts:", parts);
         
         if (parts.length === 3 && parts[0] === 'si') {
@@ -201,16 +230,38 @@ export const QueryChat = () => {
           const userID1 = parts[1];
           const userID2 = parts[2];
           const selfInfo = useUserStore.getState().selfInfo;
-          const otherUserID = selfInfo.userID === userID1 ? userID2 : userID1;
+          let otherUserID = selfInfo.userID === userID1 ? userID2 : userID1;
           
-          console.log("=== 调试用户ID计算 ===");
-          console.log("会话ID:", normalizedConversationID);
+          console.log("=== 调试用户ID计算（会话列表为空） ===");
+          console.log("会话ID:", conversationID);
           console.log("解析的部分:", parts);
           console.log("用户ID1:", userID1);
           console.log("用户ID2:", userID2);
           console.log("当前用户ID:", selfInfo.userID);
+          console.log("当前用户ID类型:", typeof selfInfo.userID);
+          console.log("用户ID1类型:", typeof userID1);
+          console.log("用户ID2类型:", typeof userID2);
+          console.log("selfInfo.userID === userID1:", selfInfo.userID === userID1);
+          console.log("selfInfo.userID === userID2:", selfInfo.userID === userID2);
+          console.log("selfInfo.userID == userID1:", selfInfo.userID == userID1);
+          console.log("selfInfo.userID == userID2:", selfInfo.userID == userID2);
+          console.log("selfInfo.userID?.toString() === userID1:", selfInfo.userID?.toString() === userID1);
+          console.log("selfInfo.userID?.toString() === userID2:", selfInfo.userID?.toString() === userID2);
           console.log("计算的对方用户ID:", otherUserID);
           console.log("Creating temporary conversation for userID:", otherUserID);
+          
+          // 如果selfInfo.userID为空或未定义，尝试从localStorage获取
+          if (!selfInfo.userID) {
+            console.log("selfInfo.userID为空，尝试从localStorage获取");
+            const storedUserID = localStorage.getItem("IM_USERID");
+            console.log("从localStorage获取的userID:", storedUserID);
+            if (storedUserID) {
+              const otherUserIDFromStorage = storedUserID === userID1 ? userID2 : userID1;
+              console.log("使用localStorage userID计算的对方用户ID:", otherUserIDFromStorage);
+              // 更新otherUserID
+              otherUserID = otherUserIDFromStorage;
+            }
+          }
           
           // 异步获取用户信息并创建临时会话
           const createTempConversation = async () => {

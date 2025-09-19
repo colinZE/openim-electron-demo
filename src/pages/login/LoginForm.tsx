@@ -238,9 +238,13 @@ const LoginForm = ({ loginMethod, setFormType, updateLoginMethod }: LoginFormPro
             // 如果重定向路径是会话ID格式（si_xxx_xxx），需要添加/chat前缀并标准化
             let finalRedirectPath = params.redirectPath;
             if (params.redirectPath.startsWith('si_') && !params.redirectPath.startsWith('/chat/')) {
-              // 标准化会话ID，确保用户ID按字典序排列
+              // 🎯 标准化会话ID，确保与SDK保持一致
               const normalizedConversationID = normalizeSingleConversationID(params.redirectPath);
               finalRedirectPath = `/chat/${normalizedConversationID}`;
+              console.log('Token隐式登录成功，标准化会话ID:', {
+                original: params.redirectPath,
+                normalized: normalizedConversationID
+              });
             }
             console.log('Token隐式登录成功，跳转到指定页面:', finalRedirectPath);
             navigate(finalRedirectPath);

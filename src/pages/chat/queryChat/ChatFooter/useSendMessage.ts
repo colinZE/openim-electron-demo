@@ -55,96 +55,25 @@ export function useSendMessage() {
         return;
       }
 
-      // 🚨 智能多标签页冲突检查 - 只检查真正的问题场景
-      const conflictingTabs = multiTabDetector.getConflictingTabs();
-      if (conflictingTabs.length > 0) {
-        const currentConversationId = window.location.hash.match(/\/chat\/(.+)$/)?.[1];
-        
-        // 只检查相同会话的冲突，且当前页面可见时才阻止
-        const hasConversationConflict = conflictingTabs.some(tab => 
-          tab.conversationId === currentConversationId && 
-          document.visibilityState === 'visible' // 只有当前页面可见时才阻止
-        );
-        
-        if (hasConversationConflict) {
-          console.warn("🚨 WARNING: Multiple tabs with same conversation detected!");
-          console.warn("This may cause message routing issues, but allowing message to proceed");
-          
-          // 只发出警告，不阻止消息发送
-          feedbackToast({ 
-            error: "⚠️ 检测到多个标签页打开相同聊天，消息可能显示在错误的页面",
-            msg: "检测到多个标签页打开相同聊天"
-          });
-          
-          // 不返回，继续发送消息
-        }
-      }
+     
 
-      // 🚨 严重安全检查：验证当前URL是否与要发送的目标一致
-      const currentPath = window.location.hash;
-      const expectedReceiver = finalRecvID || finalGroupID;
-      
-      if (currentPath && expectedReceiver) {
-        // 从URL中提取会话ID进行验证
-        const pathMatch = currentPath.match(/\/chat\/(.+)$/);
-        if (pathMatch) {
-          const urlConversationID = pathMatch[1];
-          
-          // 验证单聊场景
-          if (finalRecvID && urlConversationID.startsWith('si_')) {
-            const urlParts = urlConversationID.split('_');
-            if (urlParts.length === 3) {
-              const [, userID1, userID2] = urlParts;
-              const currentUserID = useUserStore.getState().selfInfo.userID;
-              
-              // 验证URL中的userID是否匹配要发送的目标
-              const isValidTarget = (userID1 === finalRecvID && userID2 === currentUserID) ||
-                                   (userID2 === finalRecvID && userID1 === currentUserID);
-              
-              if (!isValidTarget) {
-                console.error("🚨 SECURITY ALERT: Message target mismatch!", {
-                  urlConversationID,
-                  targetRecvID: finalRecvID,
-                  currentUserID,
-                  urlUserIDs: [userID1, userID2]
-                });
-                updateOneMessage({
-                  ...message,
-                  status: MessageStatus.Failed,
-                });
-                feedbackToast({ 
-                  error: "发送失败：会话状态异常，请刷新页面重试",
-                  msg: "消息发送验证失败" 
-                });
-                return;
-              }
-            }
-          }
-          
-          // 验证群聊场景
-          if (finalGroupID && urlConversationID.startsWith('g_')) {
-            const urlGroupID = urlConversationID.replace('g_', '');
-            if (urlGroupID !== finalGroupID) {
-              console.error("🚨 SECURITY ALERT: Group message target mismatch!", {
-                urlGroupID,
-                targetGroupID: finalGroupID
-              });
-              updateOneMessage({
-                ...message,
-                status: MessageStatus.Failed,
-              });
-              feedbackToast({ 
-                error: "发送失败：群聊状态异常，请刷新页面重试",
-                msg: "群消息发送验证失败" 
-              });
-              return;
-            }
-          }
-        }
+      // 🎯 确保单聊会话ID的一致性
+      let normalizedRecvID = finalRecvID;
+      if (finalRecvID && !finalGroupID) {
+        // 单聊：确保会话ID按字典序排列
+        const selfInfo = useUserStore.getState().selfInfo;
+        const userIDs = [selfInfo.userID, finalRecvID].sort();
+        normalizedRecvID = userIDs[1]; // 使用较大的用户ID作为接收者
+        console.log("🎯 单聊会话ID标准化:", {
+          originalRecvID: finalRecvID,
+          normalizedRecvID,
+          selfInfo: selfInfo.userID,
+          sortedIDs: userIDs
+        });
       }
 
       const options = {
-        recvID: finalRecvID || "",
+        recvID: normalizedRecvID || "",
         groupID: finalGroupID || "",
         message,
         isOnlineOnly: false,

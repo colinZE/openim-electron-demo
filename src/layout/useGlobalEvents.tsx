@@ -315,21 +315,7 @@ export function useGlobalEvent() {
     getConversationListByReq(false);
     getUnReadCountByReq();
     
-    // 启用多标签页检测 - 仅作为监控，不阻止功能
-    multiTabDetector.onConflict((conflictTabs) => {
-      console.warn('⚠️ Multiple OpenIM tabs detected for same user!');
-      console.warn('Conflicting tabs:', conflictTabs);
-      
-      const currentConversationId = window.location.hash.match(/\/chat\/(.+)$/)?.[1];
-      const hasConversationConflict = conflictTabs.some(tab => 
-        tab.conversationId === currentConversationId
-      );
-      
-      if (hasConversationConflict) {
-        console.warn('⚠️ Same conversation open in multiple tabs - this may cause message routing issues');
-        // 只在控制台警告，不显示用户提示，避免干扰正常使用
-      }
-    });
+    // 🚨 移除多标签页检测，允许多设备正常使用
   };
   const syncFailedHandler = () => {
     updateSyncState("failed");
