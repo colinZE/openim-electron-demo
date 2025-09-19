@@ -57,20 +57,15 @@ export function useSendMessage() {
 
      
 
-      // 🎯 确保单聊会话ID的一致性
-      let normalizedRecvID = finalRecvID;
-      if (finalRecvID && !finalGroupID) {
-        // 单聊：确保会话ID按字典序排列
-        const selfInfo = useUserStore.getState().selfInfo;
-        const userIDs = [selfInfo.userID, finalRecvID].sort();
-        normalizedRecvID = userIDs[1]; // 使用较大的用户ID作为接收者
-        console.log("🎯 单聊会话ID标准化:", {
-          originalRecvID: finalRecvID,
-          normalizedRecvID,
-          selfInfo: selfInfo.userID,
-          sortedIDs: userIDs
-        });
-      }
+      // 🎯 修复：保持原始接收者ID，不进行标准化
+      // 会话ID标准化只用于会话识别，不应该改变消息的接收者
+      const normalizedRecvID = finalRecvID;
+      console.log("🎯 消息发送详情:", {
+        originalRecvID: finalRecvID,
+        finalRecvID: finalRecvID,
+        selfInfo: useUserStore.getState().selfInfo.userID,
+        currentConversation: currentConversation
+      });
 
       const options = {
         recvID: normalizedRecvID || "",
