@@ -18,7 +18,7 @@ import { InviteData } from "../../pages/common/RtcCallModal/data";
 import emitter from "../../utils/events";
 import { getBusinessUserInfo } from "../../api/login";
 import { CustomType } from "../../constants";
-import { IMSDK } from "../../layout/MainContentWrap";
+import { IMSDK } from "@/layout/MainContentWrap";
 import { isEmbeddedMode } from "../../utils/common";
 
 const MobileLayout = () => {

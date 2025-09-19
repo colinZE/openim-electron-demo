@@ -31,7 +31,7 @@ import { Platform } from "@/utils/platform";
 import { clearIMProfile, getIMToken, getIMUserID } from "@/utils/storage";
 import { multiTabDetector } from "@/utils/multiTabDetector";
 
-import { IMSDK, getIMSDK } from "./MainContentWrap";
+import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 
 // 需要访问SDK状态，但为了避免循环依赖，我们直接检查SDK实例
 const isSDKReady = () => {

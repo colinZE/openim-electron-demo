@@ -12,7 +12,7 @@ import { APP_NAME, APP_VERSION, SDK_VERSION } from "@/config";
 import { feedbackToast } from "@/utils/common";
 
 import { OverlayVisibleHandle, useOverlayVisible } from "../../hooks/useOverlayVisible";
-import { IMSDK } from "../MainContentWrap";
+import { IMSDK } from "@/layout/MainContentWrap";
 
 const About: ForwardRefRenderFunction<OverlayVisibleHandle, unknown> = (_, ref) => {
   const [form] = Form.useForm();
