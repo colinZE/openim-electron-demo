@@ -1,0 +1,116 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>资源预加载</title>
+  
+  <!-- WASM文件预加载 -->
+  <link rel="preload" as="fetch" href="/openIM.wasm" type="application/wasm">
+  <link rel="preload" as="fetch" href="/sql-wasm.wasm" type="application/wasm">
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .title {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    .status {
+      margin: 10px 0;
+      color: #666;
+    }
+    .resource-list {
+      margin-top: 20px;
+    }
+    .resource-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+    }
+    .progress {
+      margin: 15px 0;
+      color: #007bff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="title">OpenIM 资源预加载</div>
+    <div class="status" id="status">初始化中...</div>
+    
+    <div class="resource-list">
+      <div class="resource-item">
+        <span>主模块 (openIM.wasm)</span>
+        <span id="wasm1-status">等待中</span>
+      </div>
+      <div class="resource-item">
+        <span>数据库模块 (sql-wasm.wasm)</span>
+        <span id="wasm2-status">等待中</span>
+      </div>
+    </div>
+    
+    <div class="progress" id="progress">0/2 已完成</div>
+  </div>
+
+  <script>
+    let loadedCount = 0;
+    const totalResources = 2;
+    
+    function updateStatus() {
+      const status = document.getElementById('status');
+      const progress = document.getElementById('progress');
+      
+      progress.textContent = `${loadedCount}/${totalResources} 已完成`;
+      
+      if (loadedCount >= totalResources) {
+        status.textContent = '预加载完成！';
+        
+        // 通知父页面
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'preload_complete',
+            timestamp: Date.now()
+          }, '*');
+        }
+      } else {
+        status.textContent = '正在加载资源...';
+      }
+    }
+    
+    function checkResource(url, statusId) {
+      fetch(url, { method: 'HEAD' })
+        .then(() => {
+          loadedCount++;
+          document.getElementById(statusId).textContent = '已加载';
+          updateStatus();
+        })
+        .catch(() => {
+          document.getElementById(statusId).textContent = '加载失败';
+          updateStatus();
+        });
+    }
+    
+    // 开始检查资源
+    setTimeout(() => {
+      checkResource('/openIM.wasm', 'wasm1-status');
+      checkResource('/sql-wasm.wasm', 'wasm2-status');
+    }, 500);
+  </script>
+</body>
+
+</html>

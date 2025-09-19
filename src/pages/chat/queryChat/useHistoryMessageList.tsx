@@ -7,6 +7,7 @@ import { IMSDK, getIMSDK } from "@/layout/MainContentWrap";
 import { useUserStore, useConversationStore } from "@/store";
 import emitter, { emit } from "@/utils/events";
 import { normalizeSingleConversationID } from "@/utils/imCommon";
+import { multiTabDetector } from "@/utils/multiTabDetector";
 
 const START_INDEX = 10000;
 const SPLIT_COUNT = 20;
@@ -57,6 +58,45 @@ export function useHistoryMessageList() {
 
   useEffect(() => {
     const pushNewMessage = (message: MessageItem) => {
+      // 🚨 智能消息接收安全检查
+      const currentConversationId = window.location.hash.match(/\/chat\/(.+)$/)?.[1];
+      
+      // 只在真正有问题时才阻止消息显示
+      const conflictingTabs = multiTabDetector.getConflictingTabs();
+      if (conflictingTabs.length > 0 && currentConversationId) {
+        const hasConversationConflict = conflictingTabs.some(tab => 
+          tab.conversationId === currentConversationId
+        );
+        
+        if (hasConversationConflict) {
+          console.warn("🚨 Multi-tab conflict detected, but allowing message:", {
+            messageId: message.clientMsgID,
+            conversationId: currentConversationId,
+            conflictingTabs: conflictingTabs.map(t => t.tabId)
+          });
+          // 不阻止，继续显示消息
+        }
+      }
+      
+      // 验证消息是否属于当前会话 - 保持这个验证
+      if (currentConversationId && currentConversation) {
+        const messageBelongsToCurrentConversation = 
+          (message.recvID && (message.recvID === currentConversation.userID || message.recvID === selfInfo.userID)) ||
+          (message.groupID && message.groupID === currentConversation.groupID);
+        
+        if (!messageBelongsToCurrentConversation) {
+          console.warn("🚨 Message conversation mismatch, dropping:", {
+            messageRecvID: message.recvID,
+            messageGroupID: message.groupID,
+            currentConversationUserID: currentConversation.userID,
+            currentConversationGroupID: currentConversation.groupID,
+            urlConversationID: conversationID,
+            messageId: message.clientMsgID
+          });
+          return;
+        }
+      }
+
       if (
         latestLoadState.current?.messageList.find(
           (item) => item.clientMsgID === message.clientMsgID,

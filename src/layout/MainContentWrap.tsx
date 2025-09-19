@@ -55,7 +55,33 @@ const initSDK = async () => {
       
       // 将SDK实例暴露到全局，方便其他组件检查状态
       if (typeof window !== 'undefined') {
+        // 检测多标签页冲突
+        if ((window as any).openIMSDK && (window as any).openIMSDK !== sdkInstance) {
+          console.error("🚨 CRITICAL: Multiple SDK instances detected across tabs!");
+          console.error("This can cause message routing conflicts!");
+          
+          // 添加页面标识符
+          const pageId = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          (window as any).openIMPageId = pageId;
+          console.warn(`Current page ID: ${pageId}`);
+          
+          // 发出警告事件
+          window.dispatchEvent(new CustomEvent('openim-multi-tab-warning', {
+            detail: { pageId, timestamp: Date.now() }
+          }));
+        }
+        
         (window as any).openIMSDK = sdkInstance;
+        
+        // 监听其他标签页的警告
+        const handleMultiTabWarning = (event: Event) => {
+          const customEvent = event as CustomEvent;
+          const { pageId: otherPageId } = customEvent.detail;
+          console.warn(`🚨 Another OpenIM tab detected: ${otherPageId}`);
+          console.warn("Message routing may be affected. Consider closing other tabs.");
+        };
+        
+        window.addEventListener('openim-multi-tab-warning', handleMultiTabWarning);
       }
       
       return sdkInstance;
